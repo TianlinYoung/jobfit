@@ -42,6 +42,7 @@ export class ScoreCalculator {
       points: weight * credit,
       evidence: status === 'listed' ? [SKILLS_LIST_EVIDENCE, ...bulletTexts] : bulletTexts,
       sourceLine: skill.sourceLine,
+      highlights: skill.highlights,
     };
   }
 

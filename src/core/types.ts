@@ -54,11 +54,19 @@ export interface SplitResult {
   hasRequirementHeaders: boolean;
 }
 
+/** Half-open character range [start, end) inside a string. */
+export interface TextRange {
+  start: number;
+  end: number;
+}
+
 export interface ExtractedSkill {
   skillId: string;
   importance: Importance;
   /** The JD line the skill came from, shown to the user as evidence. */
   sourceLine: string;
+  /** Where the skill's words sit inside sourceLine, so the UI can highlight them. */
+  highlights: TextRange[];
 }
 
 export interface ParsedJd {
@@ -107,6 +115,7 @@ export interface SkillScore {
   /** "Skills list" and/or the text of bullets that mention the skill. */
   evidence: string[];
   sourceLine: string;
+  highlights: TextRange[];
 }
 
 export type GapKind = 'addToSkillsList' | 'canHighlightInBullet' | 'trulyMissing';

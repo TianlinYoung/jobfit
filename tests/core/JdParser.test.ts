@@ -14,16 +14,24 @@ describe('JdParser', () => {
   it('extracts skills with their importance and source line', () => {
     const parsed = parser.parse('Requirements\n- Java and SQL\nPreferred\n- Docker');
     expect(parsed.skills).toEqual([
-      { skillId: 'java', importance: 'required', sourceLine: '- Java and SQL' },
-      { skillId: 'sql', importance: 'required', sourceLine: '- Java and SQL' },
-      { skillId: 'docker', importance: 'preferred', sourceLine: '- Docker' },
+      { skillId: 'java', importance: 'required', sourceLine: '- Java and SQL', highlights: [{ start: 2, end: 6 }] },
+      { skillId: 'sql', importance: 'required', sourceLine: '- Java and SQL', highlights: [{ start: 11, end: 14 }] },
+      { skillId: 'docker', importance: 'preferred', sourceLine: '- Docker', highlights: [{ start: 2, end: 8 }] },
     ]);
   });
 
-  it('counts a skill once, keeping the most important mention', () => {
+  it('counts a skill once, keeping the most important mention and every position in that line', () => {
     const jd = 'Preferred\n- Python\nRequirements\n- Python, Python again';
     expect(parser.parse(jd).skills).toEqual([
-      { skillId: 'python', importance: 'required', sourceLine: '- Python, Python again' },
+      {
+        skillId: 'python',
+        importance: 'required',
+        sourceLine: '- Python, Python again',
+        highlights: [
+          { start: 2, end: 8 },
+          { start: 10, end: 16 },
+        ],
+      },
     ]);
   });
 

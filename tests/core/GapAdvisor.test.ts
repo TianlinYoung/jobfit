@@ -10,7 +10,7 @@ const dictionary = bundledDictionary();
 /** Runs scoring + advice for required skills against a resume. */
 function advise(skillIds: string[], skills: string[], bullets: string[]) {
   const resume = new ResumeIndex(makeResume(skills, bullets), dictionary, bundledMatcher());
-  const jdSkills: ExtractedSkill[] = skillIds.map((skillId) => ({ skillId, importance: 'required', sourceLine: '' }));
+  const jdSkills: ExtractedSkill[] = skillIds.map((skillId) => ({ skillId, importance: 'required', sourceLine: '', highlights: [] }));
   const { breakdown } = new ScoreCalculator(dictionary).calculate(jdSkills, resume);
   return new GapAdvisor(dictionary).advise(breakdown, resume);
 }

@@ -7,7 +7,7 @@ import { bundledDictionary, bundledMatcher, makeResume } from './fixtures';
 const calculator = new ScoreCalculator(bundledDictionary());
 
 function jdSkill(skillId: string, importance: Importance): ExtractedSkill {
-  return { skillId, importance, sourceLine: `line about ${skillId}` };
+  return { skillId, importance, sourceLine: `line about ${skillId}`, highlights: [] };
 }
 
 function index(skills: string[], bullets: string[] = []): ResumeIndex {

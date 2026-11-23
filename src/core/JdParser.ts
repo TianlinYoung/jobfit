@@ -1,8 +1,8 @@
 // Turns raw JD text into the list of skills it asks for, each tagged with how important it is.
 import { IMPORTANCE_RANK } from './importance';
 import { JdSectionSplitter } from './JdSectionSplitter';
-import { TextMatcher } from './TextMatcher';
-import type { ExtractedSkill, ParsedJd } from './types';
+import { TextMatcher, type TextMatch } from './TextMatcher';
+import type { ExtractedSkill, ParsedJd, TextRange } from './types';
 
 export class JdParser {
   constructor(
@@ -16,11 +16,23 @@ export class JdParser {
     const bestBySkill = new Map<string, ExtractedSkill>();
 
     for (const line of split.lines) {
-      for (const skillId of this.matcher.findSkillIds(line.text)) {
-        this.keepMostImportant(bestBySkill, { skillId, importance: line.importance, sourceLine: line.text });
+      const rangesBySkill = this.groupBySkill(this.matcher.findAll(line.text));
+      for (const [skillId, highlights] of rangesBySkill) {
+        this.keepMostImportant(bestBySkill, { skillId, importance: line.importance, sourceLine: line.text, highlights });
       }
     }
     return { skills: [...bestBySkill.values()], hasRequirementHeaders: split.hasRequirementHeaders };
+  }
+
+  /** One line can mention a skill twice ("SQL ... SQL"); keep every position for highlighting. */
+  private groupBySkill(matches: TextMatch[]): Map<string, TextRange[]> {
+    const result = new Map<string, TextRange[]>();
+    for (const match of matches) {
+      const ranges = result.get(match.skillId) ?? [];
+      ranges.push({ start: match.start, end: match.end });
+      result.set(match.skillId, ranges);
+    }
+    return result;
   }
 
   /**

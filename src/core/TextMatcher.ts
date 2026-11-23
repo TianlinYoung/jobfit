@@ -1,12 +1,10 @@
 // Finds every dictionary skill mentioned in one piece of text (a JD line or a resume bullet).
 import { AmbiguityRules } from './AmbiguityRules';
-import type { AliasPattern } from './types';
+import type { AliasPattern, TextRange } from './types';
 import { WordBoundary } from './WordBoundary';
 
-export interface TextMatch {
+export interface TextMatch extends TextRange {
   skillId: string;
-  start: number;
-  end: number;
 }
 
 export class TextMatcher {
