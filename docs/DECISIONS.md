@@ -231,10 +231,15 @@ The same per-field rules (`FieldChecker`) also read the app's own localStorage, 
 
 **TypeScript 6 for linting only.** The project compiles with TypeScript 7, the native (Go) compiler. Its npm package no longer ships the JavaScript compiler API, and typescript-eslint 8.74 needs that API (its peer range is `typescript <6.1`). So:
 - `@typescript/typescript6` (TypeScript 6.0, the same language, with the JavaScript API) is a dev dependency.
-- A module resolve hook at the top of `eslint.config.js` sends `import 'typescript'` to it, **only** for imports made by typescript-eslint's own packages. `tsc`, Vite and Vitest are unaffected.
+- A module resolve hook at the top of `eslint.config.js` sends `import 'typescript'` to it, **only** for imports made by typescript-eslint's own packages. Vite, Vitest and `npm run typecheck` are unaffected.
 - `overrides` in `package.json` relaxes typescript-eslint's peer range to the installed TypeScript, so `npm ci` does not fail on the peer conflict.
 
-typescript-eslint also has an experimental TypeScript 7 backend, but it requires a 7.1 pre-release; we stay on released versions. When typescript-eslint supports TypeScript 7 directly, the hook, the override and `@typescript/typescript6` can all be deleted.
+**Two `tsc` commands.** `@typescript/typescript6` depends on `@typescript/old`, which is TypeScript 6.0.3 under another name, and that package also declares a `tsc` command. npm links only one `node_modules/.bin/tsc`, and here it is the TypeScript 6 one. So:
+- `npm run typecheck` runs `node ./node_modules/typescript/bin/tsc --noEmit`, a direct path to TypeScript 7, instead of the bare `tsc`.
+- CI prints `node ./node_modules/typescript/bin/tsc -v` before type-checking, so the log shows which version ran.
+- Typing `npx tsc` by hand gives **TypeScript 6.0.3**, not 7. Use `npm run typecheck`, or the direct path above.
+
+typescript-eslint also has an experimental TypeScript 7 backend, but it requires a 7.1 pre-release; we stay on released versions. When typescript-eslint supports TypeScript 7 directly, the hook, the override and `@typescript/typescript6` can all be deleted, and `typecheck` can go back to plain `tsc --noEmit`.
 
 **Rule changes.** No rule is switched off globally. Each change, and why:
 

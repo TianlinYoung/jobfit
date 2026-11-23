@@ -62,17 +62,26 @@ credit: in skills list 1 · only in a bullet 0.5 · missing 0
 
 中文要点：`toISOString` 是 UTC，西雅图下午 4 点以后就是"明天"。`CalendarDate.today(now)` 用本地年月日；`now` 由外部注入（App 的 `clock`），测试可以指定任意时刻和时区；日期加减用 UTC 午夜，不受夏令时影响。CI 在 UTC 和洛杉矶各跑一遍；阶段 3 审查时就抓到过一个只在 UTC 下失败的测试。(D11, D15)
 
-### Q: Tell me about a bug you found and fixed.
+### Q: Tell me about a bug in this project.
 
-"A read-modify-write race in storage. `saveApplication` used to do `await this.listApplications()`, then filter the list and write it back. The `await` gives up control between the read and the write. If several saves start together, they all read the same old list, and each write erases the changes before it; only the last one survives."
+"A read-modify-write race in storage, which I caught while reviewing the code. It was a latent bug, not one that had already lost data. `saveApplication` used to do `await this.listApplications()`, then filter the list and write it back. The `await` gives up control between the read and the write. If several saves start together, they all read the same old list, and each write erases the changes before it; only the last one survives."
 
-"It never lost data in practice, because the only place that saved many at once, loading the 7 sample applications, awaited each save in turn. But that was the caller working around the repository, and a comment even said so. Any future caller that didn't know would hit it. In review I moved the fix to where the problem is: read, change and write in one synchronous block, with no `await` in between (`LocalStorageRepository.saveApplication` and `deleteApplication`, using a private synchronous `readApplications`). JavaScript runs one synchronous block at a time, so no other save can run in the middle. Now the sample loader just starts all 7 saves."
+"It hadn't caused a problem yet, because the only place that saved many at once, loading the 7 sample applications, awaited each save in turn. But that meant the caller was working around the repository, and any future caller that didn't know would hit it. So in review my call was that the fix belonged in the storage layer, not in every caller."
 
-"The methods stay `async`: the interface is Promise-based for a future backend, and a storage-full error still comes back as a rejected Promise. There's a contract test that starts several saves and a delete with `Promise.all` and checks that every change survives, run against both the localStorage and in-memory repositories."
+"The fix reads, changes and writes in one synchronous block, with no `await` in between (`LocalStorageRepository.saveApplication` and `deleteApplication`, using a private synchronous `readApplications`). JavaScript runs one synchronous block at a time, so no other save can run in the middle. With that in place, the sample loader simply starts all 7 saves. The methods stay `async`: the interface is Promise-based for a future backend, and a storage-full error still comes back as a rejected Promise."
+
+"The contract test is what proves it: it starts several saves and a delete together with `Promise.all`, then checks that every change survived. It runs against both the localStorage and the in-memory repository, so any future implementation has to pass it too."
 
 "What it doesn't fix: two browser tabs each keep their own copy in memory and overwrite each other. That's listed as a known limitation; the fix would be listening to the `storage` event or moving to a backend."
 
-中文要点：`saveApplication` 原来在"读"和"写"之间有一个 `await`，同时发起的多次保存会读到同一份旧列表，后写覆盖先写。当时唯一的批量调用（加载 7 条示例）是逐个 await 的，所以没有真的丢过数据，但这是调用方在替存储层兜底。修复放在存储层：读-改-写放进同一段同步代码；方法仍是 `async`。新增 `Promise.all` 契约测试，两种实现都跑。多标签页互相覆盖仍是已知局限。
+**How to describe my part honestly.** I found the problem while reviewing the code, decided the fix should live in the storage layer rather than in the callers, and I understand and can explain both the fix and the contract test. I don't present it as a bug I independently discovered and fixed on my own.
+
+中文要点：
+- 这是我在审查代码时发现的潜在隐患，修复前没有真的丢过数据：`saveApplication` 原来在"读"和"写"之间有一个 `await`，同时发起的多次保存会读到同一份旧列表，后写覆盖先写。
+- 当时唯一的批量调用（加载 7 条示例）是逐个 await 的，等于调用方在替存储层兜底。审查时我判断修复应该放在存储层，而不是让每个调用方去避开。
+- 修复方案：读-改-写放进同一段同步代码，中间不 await；方法仍是 `async`。契约测试用 `Promise.all` 同时发起多次保存和删除，两种实现都跑。
+- 我的角色：审查时发现问题、确定修复应放在存储层、理解并能讲清修复方案和契约测试；不说成是我独立发现并修复的。
+- 多标签页互相覆盖仍是已知局限。
 
 ### Q: How do you validate an imported file? What about prototype pollution?
 
@@ -106,4 +115,4 @@ credit: in skills list 1 · only in a bullet 0.5 · missing 0
 
 - Built **JobFit**, a browser-only internship tracker in React and TypeScript that scores resume–job matches with an explainable, rule-based algorithm (section-weighted skills, evidence traced to each JD line) and gives conditional, honesty-preserving suggestions.
 - Kept all business logic in framework-free TypeScript classes with **326 unit tests** and 100% line/branch coverage of the core; CI runs lint, type-check, tests and build in two time zones to catch local-date bugs.
-- Designed strict all-or-nothing JSON import validation (field allow-list, path-level error messages, size limits) and fixed a read-modify-write race in `localStorage` persistence.
+- Designed strict all-or-nothing JSON import validation (field allow-list, path-level error messages, size limits) and, during code review, identified a read-modify-write race in `localStorage` persistence and determined the fix belonged in the storage layer, verified by a concurrent-save contract test.

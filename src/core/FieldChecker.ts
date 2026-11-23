@@ -3,6 +3,7 @@
 // Each method returns the value if it is valid, or `undefined` if not (after recording why).
 // JSON has no `undefined`, so it can safely mean "invalid". Validators check *all* fields before
 // deciding, so the user sees every problem at once instead of fixing them one by one.
+import { LIMITS } from './limits';
 
 export type IssueCode =
   | 'invalidJson'
@@ -113,7 +114,7 @@ export class FieldChecker {
   timestamp(value: unknown, path: string): string | undefined {
     const isTimestamp =
       typeof value === 'string' &&
-      value.length <= 40 &&
+      value.length <= LIMITS.timestamp &&
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) &&
       !Number.isNaN(Date.parse(value));
     if (isTimestamp) {

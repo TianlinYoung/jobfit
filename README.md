@@ -46,7 +46,7 @@ Other commands:
 | `npm run build` | Production build into `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run lint` | ESLint; must report 0 errors and 0 warnings |
-| `npm run typecheck` | `tsc --noEmit` over `src/`, `tests/` and `vite.config.ts` |
+| `npm run typecheck` | TypeScript 7 `tsc --noEmit` over `src/`, `tests/` and `vite.config.ts`. It calls `node ./node_modules/typescript/bin/tsc` directly, because a bare `npx tsc` runs the TypeScript 6 copy installed for linting (DECISIONS D15) |
 
 ## Tests and coverage
 

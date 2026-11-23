@@ -60,9 +60,8 @@ try {
   console.log(`Saved ${options.out} (${options.width} x ${height} CSS px, 2x resolution)`);
   page.close();
 } finally {
-  browser.kill();
-  await sleep(300);
-  rmSync(profileDir, { recursive: true, force: true });
+  await stopBrowser(browser);
+  removeProfile(profileDir);
 }
 
 /** Clicks that put the page into the state we want to capture. */
@@ -75,6 +74,30 @@ function scriptForView(view) {
             setTimeout(() => document.querySelector('#load-sample-applications').click(), 300);`;
   }
   fail(`Unknown --view "${view}" (use match or board)`);
+}
+
+/** Kills the browser and waits until it has exited, so it no longer holds files in the profile. */
+async function stopBrowser(child) {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return;
+  }
+  const exited = new Promise((resolve) => child.once('exit', resolve));
+  child.kill();
+  // Don't hang forever if the process never reports its exit.
+  await Promise.race([exited, sleep(5000)]);
+}
+
+/**
+ * Deletes the throwaway profile. This is only cleanup: the screenshot is already saved, so a
+ * failure (for example a helper process still holding a file on Windows) is a warning, not an error.
+ */
+function removeProfile(dir) {
+  try {
+    // A few retries cover files that are released a moment after the main process exits.
+    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  } catch (error) {
+    console.warn(`Warning: could not delete the temporary browser profile ${dir}: ${error.message}`);
+  }
 }
 
 function viewport(width, height) {

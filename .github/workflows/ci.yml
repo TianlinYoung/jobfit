@@ -32,6 +32,11 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+
+      # Two packages install a `tsc` command (TypeScript 7 and the TypeScript 6 used by lint),
+      # so print the version the typecheck script actually runs (see DECISIONS D15).
+      - name: Show TypeScript version
+        run: node ./node_modules/typescript/bin/tsc -v
       - run: npm run typecheck
 
       - name: Show time zone
