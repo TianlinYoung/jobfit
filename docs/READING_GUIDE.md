@@ -65,6 +65,7 @@ npm test         # 跑全部单元测试
 | 回调 prop（如 `onSave`） | 传进去的 listener 接口 |
 | 列表里的 `key` | 列表项的主键，React 用它判断"哪一项是哪一项" |
 | 受控输入 | 输入框的值永远来自 state，每次按键都写回 state |
+| Context + `useContext` | 一个全局可查的"作用域 bean"，组件按需取，不用层层传参 |
 
 ### 2.1 存储接口
 - `src/storage/Repository.ts`，然后 `src/storage/LocalStorageRepository.ts`，然后 `src/storage/InMemoryRepository.ts`
@@ -85,8 +86,9 @@ npm test         # 跑全部单元测试
 
 ### 2.4 匹配页（首页）
 - `src/ui/match/MatchPage.tsx`，然后 `MatchResultView.tsx`，然后 `ScoreSummary.tsx`、`SkillBreakdownTable.tsx`、`HighlightedText.tsx`、`GapList.tsx`、`UnrecognizedSkills.tsx`
-- `src/ui/format.ts`、`src/ui/sampleData.ts`
+- `src/ui/format.ts`、`src/ui/sampleData.ts`（页面上的文字都来自 `useT()`，见"阶段 2.5"一节）
 - 测试：`tests/ui/sampleData.test.ts`
+- 注意 `SkillBreakdownTable` 里 `evidenceBullets` 只放 bullet 文本；"在 Skills list 中"由 `status` 表示，不再是一个字符串。
 
 **读懂的标志：**
 - 能说出 4 种"没有结果"的情况（没点过 Analyze、简历为空、JD 里没有可识别技能、JD 改过但没重新分析），以及每种在代码里由哪个 `if` 处理。
@@ -105,3 +107,44 @@ npm test         # 跑全部单元测试
 
 ### 2.6 样式
 - `src/ui/styles.css`：扫一眼即可，只需要知道 `.badge-listed` / `.badge-bulletOnly` / `.badge-missing` 这类颜色和状态的对应关系。
+
+---
+
+## 阶段 2.5：中英文界面切换（i18n）
+
+先想清楚一个原则：**core 只返回数据，句子由 UI 生成。** 例如 `GapAdvisor` 返回 `{ kind: 'canHighlightInBullet', skillName: 'Docker', relatedKeyword: 'deploy', ... }`，"If you actually used Docker…" 和 "如果你确实用过 Docker…" 这两句话都由 UI 字典生成。理由见 `docs/DECISIONS.md` D10。
+
+### 2.7.1 core 的输出形状
+- `src/core/types.ts` 中的 `GapSuggestion`（三种 gap 组成的 tagged union）
+- `src/core/GapAdvisor.ts`
+- 测试：`tests/core/GapAdvisor.test.ts`。注意它只断言结构，不断言文案。
+
+**读懂的标志：** 能解释为什么 `relatedKeyword` 只存在于 `canHighlightInBullet` 这一种；在 `if (gap.kind === 'trulyMissing')` 分支里访问 `gap.bulletText`，TypeScript 会怎样报错（可以对照 Java 的 sealed interface 来理解）。
+
+### 2.7.2 两份字典
+- `src/ui/i18n/en.ts`，然后 `src/ui/i18n/zh.ts`
+
+**读懂的标志：**
+- 能解释 `export type Messages = typeof en` 和 `const zh: Messages` 两行，怎样做到"zh 少一个 key 就编译失败"。可以自己删掉 zh 里一行，跑 `npm run typecheck` 看报错。
+- 能说出为什么 `formula`、`canHighlightInBullet` 这类带参数的文案是函数，而不是 `"{skill}"` 占位符字符串。
+
+### 2.7.3 语言怎么选、怎么记住、怎么传下去
+- `src/ui/i18n/language.ts`（纯函数，不依赖 React）
+- `src/ui/i18n/LanguageContext.tsx`（`LanguageProvider`、`useT()`、`useLanguage()`）
+- `src/ui/i18n/LanguageSelector.tsx`、`src/main.tsx`（Provider 包在最外层）
+
+**读懂的标志：**
+- 能说出首次访问时语言是怎么决定的：先看 localStorage，再看 `navigator.language` 是否以 zh 开头。
+- 能解释 Context 解决了什么问题：如果没有它，`t` 要通过 props 一层层往下传多少层？
+- 能解释为什么 localStorage 读写失败时，语言选择只是"不被记住"，而不会让应用崩溃。
+
+### 2.7.4 句子在哪里生成，以及诚实措辞的测试
+- `src/ui/i18n/gapMessage.ts`、`src/ui/match/GapList.tsx`
+- 测试：`tests/ui/i18n.test.ts`
+
+**读懂的标志：**
+- 能解释 `gapMessage` 里的 `switch` 为什么不需要 `default`：新增一种 kind 却忘了处理，会在哪里被发现？
+- 能说出测试用哪两种方式保证中英文都不会诱导用户补写没做过的经历：一是必须包含条件式短语，二是禁止出现一组命令式措辞。
+
+### 2.7.5 以后写新组件
+阶段 3、4 的所有新组件都用 `const t = useT();` 取文案。新增文案时先加到 `en.ts`，编译器会提示 `zh.ts` 缺了什么。

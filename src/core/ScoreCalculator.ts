@@ -8,8 +8,6 @@ import { ResumeIndex } from './ResumeIndex';
 import { SkillDictionary } from './SkillDictionary';
 import type { ExtractedSkill, MatchStatus, SkillScore } from './types';
 
-export const SKILLS_LIST_EVIDENCE = 'Skills list';
-
 export interface ScoreResult {
   score: number | null;
   earnedPoints: number;
@@ -40,7 +38,7 @@ export class ScoreCalculator {
       status,
       credit,
       points: weight * credit,
-      evidence: status === 'listed' ? [SKILLS_LIST_EVIDENCE, ...bulletTexts] : bulletTexts,
+      evidenceBullets: bulletTexts,
       sourceLine: skill.sourceLine,
       highlights: skill.highlights,
     };

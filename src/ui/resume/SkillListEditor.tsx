@@ -1,5 +1,6 @@
 // Edits the skills list: type a skill (or "Java, SQL"), press Enter or Add, remove with ×.
 import { useState, type FormEvent } from 'react';
+import { useT } from '../i18n/LanguageContext';
 import { addSkills } from '../resumeDraft';
 
 // React: props are inputs from the parent. This component does not own the skills list;
@@ -10,6 +11,7 @@ interface SkillListEditorProps {
 }
 
 export function SkillListEditor({ skills, onChange }: SkillListEditorProps) {
+  const t = useT();
   // React: useState gives this component a private field that survives re-renders.
   // It returns the current value and a setter; calling the setter makes React re-render.
   const [input, setInput] = useState('');
@@ -24,7 +26,7 @@ export function SkillListEditor({ skills, onChange }: SkillListEditorProps) {
     <div className="skill-editor">
       <form className="inline-form" onSubmit={handleSubmit}>
         <label className="visually-hidden" htmlFor="skill-input">
-          Add a skill
+          {t.skillEditor.inputLabel}
         </label>
         {/* React: a "controlled input": its value always comes from state, and every keystroke
             updates state through onChange. The state, not the DOM, is the source of truth. */}
@@ -32,16 +34,16 @@ export function SkillListEditor({ skills, onChange }: SkillListEditorProps) {
           id="skill-input"
           type="text"
           value={input}
-          placeholder="e.g. Java, SQL, React"
+          placeholder={t.skillEditor.placeholder}
           onChange={(event) => setInput(event.target.value)}
         />
         <button type="submit" disabled={input.trim() === ''}>
-          Add
+          {t.skillEditor.add}
         </button>
       </form>
 
       {skills.length === 0 ? (
-        <p className="hint">No skills yet. Add the ones listed on your resume.</p>
+        <p className="hint">{t.skillEditor.empty}</p>
       ) : (
         <ul className="chip-list">
           {skills.map((skill) => (
@@ -52,7 +54,7 @@ export function SkillListEditor({ skills, onChange }: SkillListEditorProps) {
               <button
                 type="button"
                 className="chip-remove"
-                aria-label={`Remove ${skill}`}
+                aria-label={t.skillEditor.remove(skill)}
                 onClick={() => onChange(skills.filter((s) => s !== skill))}
               >
                 ×

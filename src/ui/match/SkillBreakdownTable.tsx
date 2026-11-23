@@ -1,7 +1,7 @@
 // One row per JD skill: where the JD asks for it, how much it weighs, and what the resume earned.
-import { SKILLS_LIST_EVIDENCE } from '../../core/ScoreCalculator';
 import type { SkillScore } from '../../core/types';
-import { IMPORTANCE_LABEL, STATUS_LABEL, formatPoints } from '../format';
+import { formatPoints } from '../format';
+import { useT } from '../i18n/LanguageContext';
 import { HighlightedText } from './HighlightedText';
 
 // React: props are inputs from the parent; this component only displays them.
@@ -10,20 +10,21 @@ interface SkillBreakdownTableProps {
 }
 
 export function SkillBreakdownTable({ breakdown }: SkillBreakdownTableProps) {
+  const t = useT();
   return (
     <section className="card">
-      <h3>Score breakdown</h3>
+      <h3>{t.breakdown.title}</h3>
       {/* The wrapper scrolls sideways on small screens instead of squashing the columns. */}
       <div className="table-scroll">
         <table className="breakdown">
           <thead>
             <tr>
-              <th scope="col">Skill</th>
-              <th scope="col">From the JD</th>
-              <th scope="col">Importance</th>
-              <th scope="col">Your resume</th>
+              <th scope="col">{t.breakdown.columnSkill}</th>
+              <th scope="col">{t.breakdown.columnFromJd}</th>
+              <th scope="col">{t.breakdown.columnImportance}</th>
+              <th scope="col">{t.breakdown.columnResume}</th>
               <th scope="col" className="numeric">
-                Points
+                {t.breakdown.columnPoints}
               </th>
             </tr>
           </thead>
@@ -36,11 +37,11 @@ export function SkillBreakdownTable({ breakdown }: SkillBreakdownTableProps) {
                   <HighlightedText text={row.sourceLine} ranges={row.highlights} />
                 </td>
                 <td>
-                  {IMPORTANCE_LABEL[row.importance]} <span className="weight">×{row.weight}</span>
+                  {t.importance[row.importance]} <span className="weight">×{row.weight}</span>
                 </td>
                 <td>
-                  <span className={`badge badge-${row.status}`}>{STATUS_LABEL[row.status]}</span>
-                  <EvidenceList evidence={row.evidence} />
+                  <span className={`badge badge-${row.status}`}>{t.status[row.status]}</span>
+                  <EvidenceList bullets={row.evidenceBullets} />
                 </td>
                 <td className="numeric">
                   {formatPoints(row.points)} / {formatPoints(row.weight)}
@@ -54,9 +55,8 @@ export function SkillBreakdownTable({ breakdown }: SkillBreakdownTableProps) {
   );
 }
 
-/** Bullets that mention the skill. "Skills list" is already shown by the badge, so it is skipped here. */
-function EvidenceList({ evidence }: { evidence: string[] }) {
-  const bullets = evidence.filter((e) => e !== SKILLS_LIST_EVIDENCE);
+/** Resume bullets that mention the skill, quoted under the status badge. */
+function EvidenceList({ bullets }: { bullets: string[] }) {
   if (bullets.length === 0) {
     // React: returning null means "render nothing".
     return null;

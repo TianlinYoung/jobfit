@@ -1,9 +1,10 @@
 // The Resume tab: edits a draft copy of the resume and saves it when the user clicks Save.
 import { useState } from 'react';
 import type { Resume } from '../../core/types';
+import { useT } from '../i18n/LanguageContext';
+import { fromDraft, newExperienceDraft, toDraft, type ExperienceDraft } from '../resumeDraft';
 import { ExperienceEditor } from './ExperienceEditor';
 import { SkillListEditor } from './SkillListEditor';
-import { fromDraft, newExperienceDraft, toDraft, type ExperienceDraft } from '../resumeDraft';
 
 // React: props are this component's inputs. `resume` is the saved version; `onSave` asks App to store a new one.
 interface ResumeEditorProps {
@@ -12,6 +13,7 @@ interface ResumeEditorProps {
 }
 
 export function ResumeEditor({ resume, onSave }: ResumeEditorProps) {
+  const t = useT();
   // React: useState holds the draft between renders. The initial value is used only on the
   // first render; after that, React keeps whatever we last passed to setDraft.
   // Editing a draft (instead of the saved resume) means half-typed edits are never scored.
@@ -42,20 +44,18 @@ export function ResumeEditor({ resume, onSave }: ResumeEditorProps) {
   return (
     <section className="page">
       <header className="page-header">
-        <h2>Your resume</h2>
-        <p className="hint">
-          Matching uses your skills list and the text of your experience bullets. Data stays in this browser.
-        </p>
+        <h2>{t.resume.title}</h2>
+        <p className="hint">{t.resume.intro}</p>
       </header>
 
       <section className="card">
-        <h3>Skills</h3>
+        <h3>{t.resume.skillsHeading}</h3>
         <SkillListEditor skills={draft.skills} onChange={(skills) => setDraft({ ...draft, skills })} />
       </section>
 
       <section className="card">
-        <h3>Experience</h3>
-        {draft.experiences.length === 0 && <p className="hint">No experiences yet.</p>}
+        <h3>{t.resume.experienceHeading}</h3>
+        {draft.experiences.length === 0 && <p className="hint">{t.resume.noExperiences}</p>}
         {draft.experiences.map((experience) => (
           // React: `key` must be stable and unique. Using the id (not the array index) keeps each
           // editor attached to the right experience when one in the middle is removed.
@@ -67,16 +67,16 @@ export function ResumeEditor({ resume, onSave }: ResumeEditorProps) {
           />
         ))}
         <button type="button" className="secondary" onClick={addExperience}>
-          + Add experience
+          {t.resume.addExperience}
         </button>
       </section>
 
       <div className="save-bar">
         <button type="button" onClick={save} disabled={!hasUnsavedChanges}>
-          Save resume
+          {t.resume.save}
         </button>
         <span className="hint" role="status">
-          {hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved'}
+          {hasUnsavedChanges ? t.resume.unsavedChanges : t.resume.allSaved}
         </span>
       </div>
     </section>

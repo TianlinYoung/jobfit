@@ -1,6 +1,7 @@
 // The Match tab: paste a JD, click Analyze, see the score. Also the landing page of the app.
 import type { MatchService } from '../../core/MatchService';
 import type { Resume } from '../../core/types';
+import { useT } from '../i18n/LanguageContext';
 import { isResumeEmpty } from '../resumeDraft';
 import { EmptyState } from '../shared/EmptyState';
 import { MatchResultView } from './MatchResultView';
@@ -21,40 +22,42 @@ interface MatchPageProps {
 
 export function MatchPage(props: MatchPageProps) {
   const { matchService, resume, jdText, analyzedJd, onJdChange, onAnalyze, onLoadSample, onGoToResume } = props;
+  // useT() returns the dictionary for the current language (see i18n/LanguageContext.tsx).
+  const t = useT();
   const jdIsBlank = jdText.trim() === '';
 
   return (
     <section className="page">
       <header className="page-header hero">
         <div>
-          <h2>How well does your resume match this job?</h2>
-          <p className="hint">
-            Paste a job description. JobFit finds the skills it asks for, checks them against your resume, and
-            shows exactly where every point comes from.
-          </p>
+          <h2>{t.match.heroTitle}</h2>
+          <p className="hint">{t.match.heroIntro}</p>
         </div>
         <button type="button" className="secondary" onClick={onLoadSample}>
-          Try with sample data
+          {t.match.trySample}
         </button>
       </header>
 
       <section className="card">
-        <h3>
-          <label htmlFor="jd-input">Job description</label>
-        </h3>
+        <div className="label-row">
+          <h3>
+            <label htmlFor="jd-input">{t.match.jdLabel}</label>
+          </h3>
+          <span className="hint">{t.match.jdLanguageNote}</span>
+        </div>
         {/* React: controlled textarea. Its value comes from App's state, and each keystroke is sent back through onJdChange. */}
         <textarea
           id="jd-input"
           rows={10}
           value={jdText}
-          placeholder="Paste the full job description here, including the qualifications sections."
+          placeholder={t.match.jdPlaceholder}
           onChange={(event) => onJdChange(event.target.value)}
         />
         <div className="button-row">
           <button type="button" onClick={onAnalyze} disabled={jdIsBlank}>
-            Analyze
+            {t.match.analyze}
           </button>
-          {jdIsBlank && <span className="hint">Paste a job description to enable Analyze.</span>}
+          {jdIsBlank && <span className="hint">{t.match.jdBlankHint}</span>}
         </div>
       </section>
 
@@ -77,21 +80,22 @@ type ResultsProps = Pick<
 
 /** Everything below the JD box. Split out so each "nothing to show" case reads as one early return. */
 function Results({ matchService, resume, jdText, analyzedJd, onLoadSample, onGoToResume }: ResultsProps) {
+  const t = useT();
   if (analyzedJd === null) {
     return null;
   }
   if (isResumeEmpty(resume)) {
     return (
       <EmptyState
-        title="Your resume is empty"
-        message="Add your skills and experience bullets first, so there is something to compare against this JD."
+        title={t.match.resumeEmptyTitle}
+        message={t.match.resumeEmptyMessage}
         actions={
           <>
             <button type="button" onClick={onGoToResume}>
-              Add your resume
+              {t.match.addYourResume}
             </button>
             <button type="button" className="secondary" onClick={onLoadSample}>
-              Try with sample data
+              {t.match.trySample}
             </button>
           </>
         }

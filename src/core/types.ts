@@ -112,23 +112,44 @@ export interface SkillScore {
   credit: number;
   /** weight × credit */
   points: number;
-  /** "Skills list" and/or the text of bullets that mention the skill. */
-  evidence: string[];
+  /** Text of resume bullets that mention the skill (whether or not it is also listed). */
+  evidenceBullets: string[];
   sourceLine: string;
   highlights: TextRange[];
 }
 
-export type GapKind = 'addToSkillsList' | 'canHighlightInBullet' | 'trulyMissing';
+// Core returns *what* to suggest as data; the UI turns it into a sentence in the user's
+// language. Each kind carries exactly the fields its message needs (a "tagged union":
+// checking `kind` tells TypeScript which fields exist, like a sealed interface in Java).
 
-export interface GapSuggestion {
+interface GapBase {
   skillId: string;
   skillName: string;
-  kind: GapKind;
-  /** Set for addToSkillsList and canHighlightInBullet. */
-  bulletId?: string;
-  bulletText?: string;
-  message: string;
 }
+
+/** The skill is in a bullet but not in the skills list. */
+export interface AddToSkillsListGap extends GapBase {
+  kind: 'addToSkillsList';
+  bulletId: string;
+  bulletText: string;
+}
+
+/** The skill is nowhere, but a bullet mentions a related keyword. Advice must stay conditional. */
+export interface CanHighlightInBulletGap extends GapBase {
+  kind: 'canHighlightInBullet';
+  bulletId: string;
+  bulletText: string;
+  relatedKeyword: string;
+}
+
+/** The skill is nowhere and no bullet looks related. */
+export interface TrulyMissingGap extends GapBase {
+  kind: 'trulyMissing';
+}
+
+export type GapSuggestion = AddToSkillsListGap | CanHighlightInBulletGap | TrulyMissingGap;
+
+export type GapKind = GapSuggestion['kind'];
 
 export interface MatchReport {
   /** 0–100, or null when the JD contains no skill we recognize. */

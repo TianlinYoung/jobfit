@@ -1,0 +1,107 @@
+// Simplified Chinese UI text. The `Messages` type makes the compiler reject a missing, extra or misspelled key.
+import type { Messages } from './en';
+
+export const zh: Messages = {
+  app: {
+    tagline: '实习投递追踪 + JD 匹配',
+    languageLabel: '界面语言',
+    loading: '正在加载你的简历…',
+    loadFailed: '无法读取已保存的简历。你仍然可以使用应用，但修改可能无法保存。',
+    saveFailed: '简历保存失败（浏览器存储可能已满或被禁用）。',
+    confirmReplaceWithSample: '要用示例简历替换你已保存的简历吗？',
+    footer: '所有计算都在你的浏览器里完成，不会上传任何数据。',
+  },
+  tabs: {
+    match: '匹配职位',
+    resume: '我的简历',
+  },
+  match: {
+    heroTitle: '你的简历和这个职位有多匹配？',
+    heroIntro: '粘贴一份 JD，JobFit 会找出它要求的技能，和你的简历逐项比对，并说明每一分是怎么来的。',
+    trySample: '用示例数据试试',
+    jdLabel: '职位描述（JD）',
+    jdPlaceholder: '在这里粘贴完整的 JD，记得包括 Qualifications 部分。',
+    jdLanguageNote: '目前仅支持英文职位描述。',
+    analyze: '分析',
+    jdBlankHint: '粘贴 JD 后才能分析。',
+    resumeEmptyTitle: '简历还是空的',
+    resumeEmptyMessage: '先填写技能和经历 bullet，才有内容可以和这份 JD 比对。',
+    addYourResume: '填写简历',
+    noSkillsTitle: '这份 JD 里没有识别到技能',
+    noSkillsMessage: '技能词典里的技能一个都没有出现在这段文字里。请确认粘贴的是完整的 JD，包括 Qualifications 部分。',
+    seeExample: '看看示例',
+    staleNotice: '上次分析之后 JD 被修改过，点击“分析”更新结果。',
+  },
+  score: {
+    ariaLabel: '匹配分数',
+    formula: (earned, max, score) => `${earned} / ${max} 分 = ${score}%`,
+    listedCount: (listed, total) => `JD 要求的 ${total} 项技能中，有 ${listed} 项在你的 Skills list 里。`,
+    explanation:
+      '每项技能按权重计分（必需 ×3、优先 ×1、其他位置提及 ×1）。技能在 Skills list 里得全部权重，只出现在 bullet 里得一半，完全没有则不得分。',
+    noHeadersNotice: '这份 JD 没有 Required / Preferred 标题，所以每项技能都按 ×2 计算。',
+  },
+  importance: {
+    required: '必需',
+    preferred: '优先',
+    context: '其他位置提及',
+    unspecified: '未标注',
+  },
+  status: {
+    listed: '在 Skills list 中',
+    bulletOnly: '仅出现在 bullet 中',
+    missing: '缺失',
+  },
+  breakdown: {
+    title: '得分明细',
+    columnSkill: '技能',
+    columnFromJd: 'JD 原文',
+    columnImportance: '重要性',
+    columnResume: '你的简历',
+    columnPoints: '得分',
+  },
+  unrecognized: {
+    title: '无法比对的技能',
+    ariaLabel: '无法识别的技能',
+    message: '以下技能不在技能词典里，因此没有计分。请检查拼写，或换成常见写法（例如用 “Spring Boot” 而不是 “Spring”）。',
+  },
+  gaps: {
+    title: '改进建议',
+    none: '这份 JD 要求的技能都已经在你的 Skills list 里了，没有需要补充的。',
+    kindLabel: {
+      addToSkillsList: '加入 Skills list',
+      canHighlightInBullet: '或可在 bullet 中提及',
+      trulyMissing: '简历中没有',
+    },
+    addToSkillsList: (skill) => `${skill} 已经出现在你的某条 bullet 里，但不在 Skills list 中。把它加进 Skills list，更容易被看到。`,
+    // 必须保持条件式措辞：见 docs/DECISIONS.md D6 和 tests/ui/i18n.test.ts。
+    canHighlightInBullet: (skill, keyword) =>
+      `如果你确实在这段经历中用过 ${skill}，可以在这条 bullet 里明确写出来（它提到了“${keyword}”，通常与之相关）。如果没有用过，保持这条 bullet 不变。`,
+    trulyMissing: (skill) => `你的简历里没有出现 ${skill}。如果你确实有相关经验，可以补上；否则可以把它当作接下来要学的技能。`,
+  },
+  resume: {
+    title: '我的简历',
+    intro: '匹配时会用到你的 Skills list 和每条经历 bullet 的文字。数据只保存在当前浏览器里。',
+    skillsHeading: '技能（Skills list）',
+    experienceHeading: '经历',
+    noExperiences: '还没有添加经历。',
+    addExperience: '+ 添加经历',
+    save: '保存简历',
+    unsavedChanges: '有未保存的修改',
+    allSaved: '所有修改已保存',
+  },
+  skillEditor: {
+    inputLabel: '添加技能',
+    placeholder: '例如 Java, SQL, React',
+    add: '添加',
+    empty: '还没有技能。把简历上列出的技能加进来吧。',
+    remove: (skill) => `删除 ${skill}`,
+  },
+  experienceEditor: {
+    legend: '经历',
+    title: '职位',
+    organization: '公司 / 组织',
+    bullets: 'Bullets（每行一条）',
+    bulletsPlaceholder: '请用英文填写，每行一条，例如：\nBuilt a REST API in Java for ...\nCut query time by 80% by ...',
+    remove: '删除这段经历',
+  },
+};

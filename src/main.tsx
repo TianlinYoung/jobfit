@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { MatchService } from './core/MatchService';
 import { LocalStorageRepository } from './storage/LocalStorageRepository';
 import { App } from './ui/App';
+import { LanguageProvider } from './ui/i18n/LanguageContext';
 import './ui/styles.css';
 
 const rootElement = document.getElementById('root');
@@ -18,8 +19,11 @@ const matchService = MatchService.createDefault();
 
 // StrictMode runs extra checks in development (for example, running effects twice to catch
 // missing cleanup). It has no effect in the production build.
+// LanguageProvider wraps everything so any component can call useT().
 createRoot(rootElement).render(
   <StrictMode>
-    <App repository={repository} matchService={matchService} />
+    <LanguageProvider store={window.localStorage} browserLanguage={navigator.language}>
+      <App repository={repository} matchService={matchService} />
+    </LanguageProvider>
   </StrictMode>,
 );

@@ -84,10 +84,12 @@ More entries (storage, UI, CI) are added in later stages.
 **Decision.** When a missing skill is related to an existing bullet (Docker ↔ "deployed"), the message is always conditional:
 
 > If you actually used Docker in this work, mention it explicitly in this bullet ... If you did not use it, leave the bullet as it is.
+>
+> 如果你确实在这段经历中用过 Docker，可以在这条 bullet 里明确写出来……如果没有用过，保持这条 bullet 不变。
 
 Skills with no related bullet are labeled "truly missing" and framed as something to learn.
 
-**Why.** A resume tool that nudges people to add skills they don't have causes real harm. Candidates get caught in interviews, and trust in the tool is lost. The related-keyword match is only a hint that the skill *might* have been involved, so the wording must leave the decision to the user. A test (`GapAdvisor.test.ts`) locks in this wording.
+**Why.** A resume tool that nudges people to add skills they don't have causes real harm. Candidates get caught in interviews, and trust in the tool is lost. The related-keyword match is only a hint that the skill *might* have been involved, so the wording must leave the decision to the user. Since D10, the wording lives in the UI dictionaries, and `tests/ui/i18n.test.ts` locks it in for **every** language. Each language must contain the conditional phrase and must not match a list of directive phrasings. A new language cannot ship without passing the same check.
 
 **Rejected.** Directive wording such as "Add Docker to this bullet". It reads better, but it encourages fabrication.
 
@@ -129,6 +131,26 @@ Skills with no related bullet are labeled "truly missing" and framed as somethin
 
 ---
 
+## D10. Hand-written i18n dictionaries, and core never produces user-facing text
+
+**Decision.** The UI supports English and Simplified Chinese through two plain TypeScript objects (`src/ui/i18n/en.ts`, `zh.ts`), a React Context (`LanguageProvider`) and a `useT()` hook. `zh` is declared as `const zh: Messages`, where `Messages = typeof en`. A missing, extra or misspelled key, or a message function with the wrong parameters, is a **compile error**. Text with values in it is a small function (`formula(earned, max, score)`), so each language can order words as its grammar needs.
+
+Alongside this, `src/core/` returns **data, not sentences**:
+- `GapSuggestion` is a tagged union. Each `kind` carries exactly the values its message needs: `skillName`, `bulletText`, `relatedKeyword`.
+- `SkillScore.evidenceBullets` holds only bullet texts. The old "Skills list" marker string is gone; `status: 'listed'` already says that.
+
+**Why hand-written.** Two languages and about 90 strings do not justify a library. The type check that i18n libraries add through plugins or code generation comes for free from `typeof en`. Every piece is something a Java developer can read: an interface, two implementations, a lookup. No new API to learn.
+
+**Why core has no text.** Business logic should not know which language is on screen. The same `MatchReport` can be shown in English, in Chinese, or sent from a future backend to any client. Tests also get sturdier: core tests assert structure (kind, ids, keyword), so rewording a message cannot break them, and wording rules are tested once, in the UI layer, for all languages.
+
+**Rejected.**
+- `react-i18next` / `FormatJS`. They are powerful (pluralization, lazy loading, ICU formats), but add dependencies and concepts this app does not need.
+- Keeping English sentences in core and translating them in the UI. Matching on English text is fragile and breaks the moment wording changes.
+
+**Cost.** No pluralization rules; messages avoid needing them, for example "5 of 14 JD skills". All languages load up front, which is fine at this size. Adding a third language means one more file of about 90 entries. The JD parser itself remains English-only (see Known limitations); the Chinese UI says so next to the JD box.
+
+---
+
 ## Known limitations
 
 - **"A plus" demotes the whole line.** Any line containing "a plus", "nice to have", "preferred" or "bonus" is labeled Preferred as a whole. So "Java required; Kotlin a plus" demotes Java to Preferred as well. Splitting a line into clauses would fix this, at the cost of a more complex parser.
@@ -136,4 +158,4 @@ Skills with no related bullet are labeled "truly missing" and framed as somethin
 - **No negation or experience levels.** "No Java needed" still counts Java. "3+ years of Python" counts the same as "some Python".
 - **Dictionary only.** Skills not in `skills.json` are invisible in the JD. In the resume they are listed as unrecognized (D7).
 - **Ambiguity rules are a known-pattern list** (D2). A false positive that no rule covers, such as "Let's Go!" mid-sentence, still matches.
-- **English JDs only.**
+- **English JDs only.** The interface is available in English and Chinese (D10), but the dictionary, headings and ambiguity rules only understand English job descriptions and resume text.

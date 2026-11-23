@@ -1,3 +1,4 @@
+// Core returns structured suggestions only; wording is tested in tests/ui/i18n.test.ts.
 import { describe, expect, it } from 'vitest';
 import { GapAdvisor } from '../../src/core/GapAdvisor';
 import { ResumeIndex } from '../../src/core/ResumeIndex';
@@ -10,7 +11,12 @@ const dictionary = bundledDictionary();
 /** Runs scoring + advice for required skills against a resume. */
 function advise(skillIds: string[], skills: string[], bullets: string[]) {
   const resume = new ResumeIndex(makeResume(skills, bullets), dictionary, bundledMatcher());
-  const jdSkills: ExtractedSkill[] = skillIds.map((skillId) => ({ skillId, importance: 'required', sourceLine: '', highlights: [] }));
+  const jdSkills: ExtractedSkill[] = skillIds.map((skillId) => ({
+    skillId,
+    importance: 'required',
+    sourceLine: '',
+    highlights: [],
+  }));
   const { breakdown } = new ScoreCalculator(dictionary).calculate(jdSkills, resume);
   return new GapAdvisor(dictionary).advise(breakdown, resume);
 }
@@ -21,22 +27,28 @@ describe('GapAdvisor', () => {
   });
 
   it('suggests adding a skill that only appears in a bullet to the skills list', () => {
-    const [gap] = advise(['sql'], [], ['Wrote SQL reports']);
-    expect(gap).toMatchObject({ kind: 'addToSkillsList', bulletId: 'b1', bulletText: 'Wrote SQL reports' });
+    expect(advise(['sql'], [], ['Wrote SQL reports'])).toEqual([
+      { kind: 'addToSkillsList', skillId: 'sql', skillName: 'SQL', bulletId: 'b1', bulletText: 'Wrote SQL reports' },
+    ]);
   });
 
-  it('points at a related bullet with conditional wording only', () => {
-    const [gap] = advise(['docker'], [], ['Organized team events', 'Deployed the app to a staging server']);
-    expect(gap).toMatchObject({ kind: 'canHighlightInBullet', bulletId: 'b2' });
-    expect(gap?.message).toMatch(/^If you actually used Docker in this work/);
-    expect(gap?.message).toContain('If you did not use it, leave the bullet as it is.');
-    expect(gap?.message).toContain('"deploy"');
+  it('points at the first related bullet and reports which keyword matched', () => {
+    expect(advise(['docker'], [], ['Organized team events', 'Deployed the app to a staging server'])).toEqual([
+      {
+        kind: 'canHighlightInBullet',
+        skillId: 'docker',
+        skillName: 'Docker',
+        bulletId: 'b2',
+        bulletText: 'Deployed the app to a staging server',
+        relatedKeyword: 'deploy',
+      },
+    ]);
   });
 
-  it('marks a skill with no related bullet as truly missing', () => {
-    const [gap] = advise(['kubernetes'], [], ['Tutored first-year students']);
-    expect(gap?.kind).toBe('trulyMissing');
-    expect(gap?.bulletId).toBeUndefined();
+  it('marks a skill with no related bullet as truly missing, with no bullet fields', () => {
+    expect(advise(['kubernetes'], [], ['Tutored first-year students'])).toEqual([
+      { kind: 'trulyMissing', skillId: 'kubernetes', skillName: 'Kubernetes' },
+    ]);
   });
 
   it('does not treat "applied" or "approach" as related to mobile apps', () => {
@@ -44,6 +56,7 @@ describe('GapAdvisor', () => {
     expect(advise(['android'], [], ['Shipped two apps used by 500 students'])[0]).toMatchObject({
       kind: 'canHighlightInBullet',
       bulletId: 'b1',
+      relatedKeyword: 'apps',
     });
   });
 
@@ -55,11 +68,16 @@ describe('GapAdvisor', () => {
     expect(advise(['made-up-skill'], [], ['Deployed things'])[0]?.kind).toBe('trulyMissing');
   });
 
-  it('never suggests claiming experience in any message', () => {
+  it('returns suggestions in breakdown order', () => {
     const gaps = advise(['docker', 'sql', 'rust'], [], ['Deployed a server', 'Wrote SQL']);
-    for (const gap of gaps) {
-      expect(gap.message).not.toMatch(/\b(add|write) that you (used|have)\b/i);
-    }
     expect(gaps.map((g) => g.kind)).toEqual(['canHighlightInBullet', 'trulyMissing', 'addToSkillsList']);
+  });
+
+  it('never contains user-facing text: only the documented fields', () => {
+    const gaps = advise(['docker', 'sql', 'rust'], [], ['Deployed a server', 'Wrote SQL']);
+    const allowed = new Set(['kind', 'skillId', 'skillName', 'bulletId', 'bulletText', 'relatedKeyword']);
+    for (const gap of gaps) {
+      expect(Object.keys(gap).every((key) => allowed.has(key))).toBe(true);
+    }
   });
 });

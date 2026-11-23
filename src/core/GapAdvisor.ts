@@ -1,8 +1,9 @@
-// Turns each skill the resume is weak on into one concrete, honest suggestion.
+// Turns each skill the resume is weak on into one structured suggestion (no user-facing text).
 //
-// Honesty rule: we may point at a bullet where a skill *could* be mentioned, but the wording
-// is always conditional ("If you actually used X..."). The tool must never nudge anyone
-// toward claiming experience they don't have. See docs/DECISIONS.md.
+// Core decides *which* advice applies; the UI dictionaries (src/ui/i18n) decide how to say it.
+// Honesty rule: a canHighlightInBullet suggestion only means "this bullet might be related".
+// The UI must word it conditionally and never nudge anyone toward claiming experience they don't
+// have. See docs/DECISIONS.md (D6) and tests/ui/i18n.test.ts.
 import { ResumeIndex } from './ResumeIndex';
 import { SkillDictionary } from './SkillDictionary';
 import type { Bullet, GapSuggestion, SkillScore } from './types';
@@ -22,52 +23,23 @@ export class GapAdvisor {
   }
 
   private adviseOne(score: SkillScore, resume: ResumeIndex): GapSuggestion {
+    const base = { skillId: score.skillId, skillName: score.skillName };
+
     const mentioning = resume.bulletsMentioning(score.skillId)[0];
     if (mentioning !== undefined) {
-      return this.addToSkillsList(score, mentioning);
+      return { ...base, kind: 'addToSkillsList', bulletId: mentioning.id, bulletText: mentioning.text };
     }
     const related = this.findRelatedBullet(score.skillId, resume.allBullets());
     if (related !== null) {
-      return this.canHighlight(score, related);
+      return {
+        ...base,
+        kind: 'canHighlightInBullet',
+        bulletId: related.bullet.id,
+        bulletText: related.bullet.text,
+        relatedKeyword: related.keyword,
+      };
     }
-    return this.trulyMissing(score);
-  }
-
-  private addToSkillsList(score: SkillScore, bullet: Bullet): GapSuggestion {
-    return {
-      skillId: score.skillId,
-      skillName: score.skillName,
-      kind: 'addToSkillsList',
-      bulletId: bullet.id,
-      bulletText: bullet.text,
-      message:
-        `${score.skillName} already appears in one of your bullets but not in your skills list. ` +
-        `Add it to the skills list so it is easy to spot.`,
-    };
-  }
-
-  private canHighlight(score: SkillScore, hit: RelatedHit): GapSuggestion {
-    return {
-      skillId: score.skillId,
-      skillName: score.skillName,
-      kind: 'canHighlightInBullet',
-      bulletId: hit.bullet.id,
-      bulletText: hit.bullet.text,
-      message:
-        `If you actually used ${score.skillName} in this work, mention it explicitly in this bullet ` +
-        `(it mentions "${hit.keyword}", which is often related). If you did not use it, leave the bullet as it is.`,
-    };
-  }
-
-  private trulyMissing(score: SkillScore): GapSuggestion {
-    return {
-      skillId: score.skillId,
-      skillName: score.skillName,
-      kind: 'trulyMissing',
-      message:
-        `${score.skillName} does not appear anywhere in your resume. ` +
-        `If you have real experience with it, add it; otherwise treat it as a skill to learn.`,
-    };
+    return { ...base, kind: 'trulyMissing' };
   }
 
   /** First bullet (in resume order) containing any of the skill's related keywords. */

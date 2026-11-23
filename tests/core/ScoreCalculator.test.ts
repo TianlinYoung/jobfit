@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ResumeIndex } from '../../src/core/ResumeIndex';
-import { SKILLS_LIST_EVIDENCE, ScoreCalculator } from '../../src/core/ScoreCalculator';
+import { ScoreCalculator } from '../../src/core/ScoreCalculator';
 import type { ExtractedSkill, Importance } from '../../src/core/types';
 import { bundledDictionary, bundledMatcher, makeResume } from './fixtures';
 
@@ -60,9 +60,9 @@ describe('ScoreCalculator', () => {
     );
     const [java, sql] = result.breakdown;
     expect(java).toMatchObject({ skillName: 'Java', status: 'listed', credit: 1, points: 3 });
-    expect(java?.evidence).toEqual([SKILLS_LIST_EVIDENCE, 'Built Java services']);
+    expect(java?.evidenceBullets).toEqual(['Built Java services']);
     expect(sql).toMatchObject({ skillName: 'SQL', status: 'bulletOnly', credit: 0.5, points: 1.5 });
-    expect(sql?.evidence).toEqual(['Wrote SQL reports']);
+    expect(sql?.evidenceBullets).toEqual(['Wrote SQL reports']);
     expect(sql?.sourceLine).toBe('line about sql');
   });
 

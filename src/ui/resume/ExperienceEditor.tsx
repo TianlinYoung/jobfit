@@ -1,4 +1,5 @@
 // Edits one experience: title, organization, and its bullets (one per line).
+import { useT } from '../i18n/LanguageContext';
 import type { ExperienceDraft } from '../resumeDraft';
 
 // React: props are read-only inputs. To "change" the experience, we build a new object
@@ -10,6 +11,8 @@ interface ExperienceEditorProps {
 }
 
 export function ExperienceEditor({ experience, onChange, onRemove }: ExperienceEditorProps) {
+  const t = useT();
+
   // Returns a copy with one field replaced; `...experience` copies all existing fields.
   function update(field: keyof Omit<ExperienceDraft, 'id'>, value: string) {
     onChange({ ...experience, [field]: value });
@@ -21,15 +24,15 @@ export function ExperienceEditor({ experience, onChange, onRemove }: ExperienceE
 
   return (
     <fieldset className="experience">
-      <legend className="visually-hidden">Experience</legend>
+      <legend className="visually-hidden">{t.experienceEditor.legend}</legend>
       <div className="field-row">
         <div className="field">
-          <label htmlFor={titleId}>Title</label>
+          <label htmlFor={titleId}>{t.experienceEditor.title}</label>
           {/* React: controlled input. The value comes from props and every edit goes back up through onChange. */}
           <input id={titleId} type="text" value={experience.title} onChange={(e) => update('title', e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor={orgId}>Organization</label>
+          <label htmlFor={orgId}>{t.experienceEditor.organization}</label>
           <input
             id={orgId}
             type="text"
@@ -39,17 +42,17 @@ export function ExperienceEditor({ experience, onChange, onRemove }: ExperienceE
         </div>
       </div>
       <div className="field">
-        <label htmlFor={bulletsId}>Bullets (one per line)</label>
+        <label htmlFor={bulletsId}>{t.experienceEditor.bullets}</label>
         <textarea
           id={bulletsId}
           rows={4}
           value={experience.bulletsText}
-          placeholder={'Built a REST API in Java for ...\nCut query time by 80% by ...'}
+          placeholder={t.experienceEditor.bulletsPlaceholder}
           onChange={(e) => update('bulletsText', e.target.value)}
         />
       </div>
       <button type="button" className="link-button danger" onClick={onRemove}>
-        Remove this experience
+        {t.experienceEditor.remove}
       </button>
     </fieldset>
   );

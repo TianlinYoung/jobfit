@@ -10,11 +10,13 @@ interface TabBarProps<T extends string> {
   tabs: Tab<T>[];
   activeId: T;
   onSelect: (id: T) => void;
+  /** Accessible name for the navigation landmark, already translated by the caller. */
+  ariaLabel: string;
 }
 
-export function TabBar<T extends string>({ tabs, activeId, onSelect }: TabBarProps<T>) {
+export function TabBar<T extends string>({ tabs, activeId, onSelect, ariaLabel }: TabBarProps<T>) {
   return (
-    <nav className="tab-bar" aria-label="Main">
+    <nav className="tab-bar" aria-label={ariaLabel}>
       {tabs.map((tab) => (
         // React: when rendering a list, each item needs a unique `key` so React can tell
         // which item is which between renders (like a primary key).
