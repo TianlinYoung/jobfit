@@ -132,6 +132,46 @@ describe('ExportCodec rejects bad files as a whole', () => {
     expect(issuesFor(file)).toEqual([{ code: 'tooLong', path: 'resume.skills[0]', limit: LIMITS.skill }]);
   });
 
+  it('ignores "__proto__" keys: no prototype pollution and no smuggled fields', () => {
+    // Hand-written JSON, because JSON.stringify would not keep a "__proto__" key.
+    // JSON.parse turns "__proto__" into an ordinary own property; the validator then builds
+    // fresh objects from the known fields only, so the extra key is dropped.
+    const application = JSON.stringify(makeApplication({ id: 'a1', status: 'Applied' }));
+    const poisoned = application.replace('{', '{"__proto__":{"status":"Offer","polluted":true},');
+    const text = `{"__proto__":{"polluted":true},"schemaVersion":1,"exportedAt":"2026-11-23T18:00:00.000Z","resume":null,"applications":[${poisoned}]}`;
+
+    const result = ExportCodec.decode(text);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const imported = result.data.applications[0]!;
+    expect(imported.status).toBe('Applied');
+    expect(Object.keys(imported)).not.toContain('__proto__');
+    expect(Object.getPrototypeOf(imported)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('handles deeply nested values without crashing', () => {
+    const depth = 50_000;
+    const deep = '['.repeat(depth) + ']'.repeat(depth);
+    const application = JSON.stringify(makeApplication({ id: 'a1' }));
+
+    // Deep nesting where text is expected: a clear "expected text" error.
+    const inNotes = application.replace('"notes":""', `"notes":${deep}`);
+    const notesText = `{"schemaVersion":1,"exportedAt":"2026-11-23T18:00:00.000Z","resume":null,"applications":[${inNotes}]}`;
+    expect(ExportCodec.decode(notesText)).toEqual({
+      ok: false,
+      issues: [{ code: 'notText', path: 'applications[0].notes' }],
+    });
+
+    // Deep nesting in an unknown field is never walked, so it is simply ignored.
+    const inExtra = application.replace('{', `{"extra":${deep},`);
+    const extraText = `{"schemaVersion":1,"exportedAt":"2026-11-23T18:00:00.000Z","resume":null,"applications":[${inExtra}]}`;
+    expect(ExportCodec.decode(extraText).ok).toBe(true);
+
+    // A deeply nested top level is rejected without recursion.
+    expect(ExportCodec.decode(deep)).toEqual({ ok: false, issues: [{ code: 'notAnObject', path: '(file)' }] });
+  });
+
   it('rejects a bullet that is not an object', () => {
     const file = validFile();
     (file.resume as { experiences: { bullets: unknown }[] }).experiences[0]!.bullets = ['plain text'];

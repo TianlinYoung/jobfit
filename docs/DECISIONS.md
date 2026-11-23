@@ -234,4 +234,6 @@ The same per-field rules (`FieldChecker`) also read the app's own localStorage, 
 - **Ambiguity rules are a known-pattern list** (D2). A false positive that no rule covers, such as "Let's Go!" mid-sentence, still matches.
 - **Reminders only show while the app is open** (D12). There are no notifications or emails.
 - **Import replaces everything** (D13); there is no merge.
+- **Two open tabs overwrite each other.** Each tab keeps its own copy of the data in memory and writes its whole list to localStorage. An edit made in one tab is lost when the other tab saves next. Listening to the `storage` event, or moving to a backend, would fix this.
+- **"Today" refreshes only on interaction.** If the app stays open past midnight, reminders still use the old date until the next click or edit causes a re-render (D11). A timer set for local midnight would fix this.
 - **English JDs only.** The interface is available in English and Chinese (D10), but the dictionary, headings and ambiguity rules only understand English job descriptions and resume text.

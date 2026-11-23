@@ -192,7 +192,7 @@ npm test         # 跑全部单元测试
 
 **读懂的标志：**
 - 能解释 `replaceAll` 为什么先写 applications、后写 resume。
-- 能说出 App 里的 `loadSampleApplications` 为什么要在循环里 `await`：如果同时发出 7 个 `saveApplication`，会丢数据，原因是什么？
+- 能解释 `LocalStorageRepository.saveApplication` 为什么必须在"读、改、写"三步之间不出现 `await`：假设读完以后插入一个 `await`，同时发出的 7 次保存会怎样互相覆盖？对照测试 "keeps every change when several saves and deletes are started at the same time"。
 
 ### 3.5 看板界面
 - `src/ui/App.tsx`（新增 `applications` state、`clock`、几个处理函数）

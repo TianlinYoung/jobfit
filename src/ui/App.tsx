@@ -56,7 +56,9 @@ export function App({ repository, matchService, clock = () => new Date() }: AppP
   const [jdText, setJdText] = useState('');
   const [analyzedJd, setAnalyzedJd] = useState<string | null>(null);
 
-  // Local calendar date, recomputed each render, so it is right even if the tab stays open past midnight.
+  // Local calendar date, recomputed on every render. If the tab stays open past midnight, nothing
+  // re-renders by itself, so reminders update only after the next interaction (any click or edit).
+  // Known limitation; a midnight timer would fix it but is not needed for v1.
   const today = CalendarDate.today(clock());
 
   // React: useEffect runs code *after* the component is drawn, for work outside rendering
@@ -149,11 +151,11 @@ export function App({ repository, matchService, clock = () => new Date() }: AppP
     }
   }
 
-  async function loadSampleApplications() {
-    // One at a time (await inside the loop): each save reads the stored list and writes it back,
-    // so starting them all at once could let a later save overwrite an earlier one.
+  function loadSampleApplications() {
+    // Starting all saves at once is safe: the repository reads and writes storage in one
+    // synchronous step, and setApplications uses the updater form, so no save overwrites another.
     for (const application of createSampleApplications(clock())) {
-      await persistApplication(application);
+      void persistApplication(application);
     }
   }
 
@@ -227,7 +229,7 @@ export function App({ repository, matchService, clock = () => new Date() }: AppP
             onUpdate={updateApplication}
             onChangeStatus={changeStatus}
             onDelete={(application) => void deleteApplication(application)}
-            onLoadSample={() => void loadSampleApplications()}
+            onLoadSample={loadSampleApplications}
             onExport={exportData}
             onImport={importData}
           />

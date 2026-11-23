@@ -28,16 +28,21 @@ describe('formatDate', () => {
 describe('sample applications', () => {
   // 4:30 pm in Seattle on Nov 23 = 00:30 UTC on Nov 24.
   const now = new Date('2026-11-24T00:30:00Z');
-  const samples = createSampleApplications(now);
   const today = '2026-11-23';
 
+  // Build the samples inside each test, never in the describe body: describe bodies run while
+  // Vitest collects tests, *before* beforeAll has set the time zone, so "today" would come out
+  // in whatever zone the machine (or CI) happens to use.
+
   it('are valid, importable data covering every status', () => {
+    const samples = createSampleApplications(now);
     expect(ApplicationValidator.parseStoredList(samples)).toEqual(samples);
     expect(ExportCodec.decode(ExportCodec.encode({ resume: null, applications: samples }, now)).ok).toBe(true);
     expect(new Set(samples.map((a) => a.status))).toEqual(new Set(APPLICATION_STATUSES));
   });
 
   it('show one overdue, one due-today and one upcoming reminder relative to the local date', () => {
+    const samples = createSampleApplications(now);
     const kinds = samples.map((a) => ReminderPolicy.reminderFor(a, today)?.kind).filter((k) => k !== undefined);
     expect(kinds.sort()).toEqual(['dueToday', 'overdue', 'upcoming']);
   });

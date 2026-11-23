@@ -30,16 +30,20 @@ export class LocalStorageRepository implements Repository {
   }
 
   async listApplications(): Promise<Application[]> {
-    return ApplicationValidator.parseStoredList(this.readJson(APPLICATIONS_KEY));
+    return this.readApplications();
   }
 
+  // Read, change and write in one synchronous step, with no `await` in between.
+  // JavaScript runs one piece of synchronous code at a time, so no other save can sneak in
+  // between our read and our write. With an `await` after the read, two saves started together
+  // would both read the old list, and the second write would erase the first one's change.
   async saveApplication(application: Application): Promise<void> {
-    const others = (await this.listApplications()).filter((a) => a.id !== application.id);
+    const others = this.readApplications().filter((a) => a.id !== application.id);
     this.writeApplications([...others, application]);
   }
 
   async deleteApplication(id: string): Promise<void> {
-    const remaining = (await this.listApplications()).filter((a) => a.id !== id);
+    const remaining = this.readApplications().filter((a) => a.id !== id);
     this.writeApplications(remaining);
   }
 
@@ -53,6 +57,10 @@ export class LocalStorageRepository implements Repository {
     } else {
       this.store.setItem(RESUME_KEY, JSON.stringify(data.resume));
     }
+  }
+
+  private readApplications(): Application[] {
+    return ApplicationValidator.parseStoredList(this.readJson(APPLICATIONS_KEY));
   }
 
   private writeApplications(applications: Application[]): void {

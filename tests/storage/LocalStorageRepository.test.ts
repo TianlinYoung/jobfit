@@ -107,6 +107,19 @@ describe.each([
     expect((await repository.listApplications()).map((a) => a.id)).toEqual(['a1']);
   });
 
+  it('keeps every change when several saves and deletes are started at the same time', async () => {
+    const repository = create();
+    await repository.saveApplication(makeApplication({ id: 'gone' }));
+    // Not awaited one by one: all start before any finishes, like loading the sample data.
+    await Promise.all([
+      repository.saveApplication(makeApplication({ id: 'a' })),
+      repository.saveApplication(makeApplication({ id: 'b' })),
+      repository.deleteApplication('gone'),
+      repository.saveApplication(makeApplication({ id: 'c' })),
+    ]);
+    expect((await repository.listApplications()).map((a) => a.id).sort()).toEqual(['a', 'b', 'c']);
+  });
+
   it('replaces everything on replaceAll, including removing the resume', async () => {
     const repository = create();
     await repository.saveResume(RESUME);
