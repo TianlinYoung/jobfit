@@ -209,7 +209,7 @@ The same per-field rules (`FieldChecker`) also read the app's own localStorage, 
 
 **Why.** A JSON file can come from anywhere: an old version, a hand edit, another tool. A partial import leaves the user unsure what they have. Specific messages let them fix the file instead of guessing. `replaceAll` writes the large applications value first, so a full-storage failure happens before anything has changed.
 
-**Rejected.** A schema library such as zod (another dependency and DSL to learn; the checker is about 120 readable lines). Merging imported data with existing data (needs conflict rules; v1 keeps replace-only, with a confirm).
+**Rejected.** A schema library such as zod (another dependency and DSL to learn; `FieldChecker` is about 145 readable lines). Merging imported data with existing data (needs conflict rules; v1 keeps replace-only, with a confirm).
 
 **Cost.** Validation code must be updated whenever a field is added. An older export file will need a migration step once `schemaVersion` changes.
 
