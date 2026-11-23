@@ -267,9 +267,11 @@ typescript-eslint also has an experimental TypeScript 7 backend, but it requires
 
 ---
 
-## D16. Minimal `vercel.json`, not deployed yet
+## D16. Deployed on Vercel with a minimal `vercel.json`
 
-**Decision.** `vercel.json` holds only what a static single-page app needs. Nothing is deployed and no account is linked; the file is there so a later deploy needs no extra setup.
+**Decision.** The app is deployed at https://jobfit-indol.vercel.app. The GitHub repository was imported in the Vercel web dashboard, with framework preset Vite, build command `npm run build`, output directory `dist` and no environment variables (the app has no server and no secrets). The Node.js version comes from `engines` in `package.json` (`^26.13.1`); Vercel shows it as 26.x.
+
+`vercel.json` holds only what a static single-page app needs:
 
 | Field | Value | Why |
 |---|---|---|
@@ -277,7 +279,7 @@ typescript-eslint also has an experimental TypeScript 7 backend, but it requires
 | `outputDirectory` | `dist` | Where `vite build` writes the bundle (Vite's default). |
 | `rewrites` | `/(.*)` → `/index.html` | Any path that is not a real file gets the app's page, so a reload or a shared link to a sub-path does not show a 404. Real files such as `/assets/*.js` are served first, before rewrites apply. |
 
-**Rejected.** Headers, caching rules, redirects and framework presets: nothing in the app needs them yet. Every extra field is one more thing to explain.
+**Rejected.** Headers, caching rules, redirects and a `framework` field: nothing in the app needs them yet (the Vite preset is chosen in the dashboard instead). Every extra field is one more thing to explain.
 
 **Cost.** The app has no URL routes yet (tabs are React state), so the rewrite only matters once routes are added. It is kept because it is the standard SPA setting and costs nothing.
 

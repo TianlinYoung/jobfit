@@ -2,7 +2,7 @@
 
 **An internship application tracker that also shows, line by line, how well your resume matches a job description.**
 
-Live demo: _coming soon_ <!-- Replace with the deployed URL once the app is deployed. -->
+Live demo: https://jobfit-indol.vercel.app
 
 ![Match result for a sample job description](docs/screenshots/match-en.png)
 

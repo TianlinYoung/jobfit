@@ -83,8 +83,14 @@ async function stopBrowser(child) {
   }
   const exited = new Promise((resolve) => child.once('exit', resolve));
   child.kill();
-  // Don't hang forever if the process never reports its exit.
-  await Promise.race([exited, sleep(5000)]);
+  // Don't hang forever if the process never reports its exit. The timer is cleared once the
+  // browser exits; otherwise its pending setTimeout would keep Node alive for the full 5 seconds.
+  let timer;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(resolve, 5000);
+  });
+  await Promise.race([exited, timeout]);
+  clearTimeout(timer);
 }
 
 /**
