@@ -262,6 +262,22 @@ typescript-eslint also has an experimental TypeScript 7 backend, but it requires
 
 ---
 
+## D16. Minimal `vercel.json`, not deployed yet
+
+**Decision.** `vercel.json` holds only what a static single-page app needs. Nothing is deployed and no account is linked; the file is there so a later deploy needs no extra setup.
+
+| Field | Value | Why |
+|---|---|---|
+| `buildCommand` | `npm run build` | The same command CI runs, so the deployed bundle is the one CI checked. |
+| `outputDirectory` | `dist` | Where `vite build` writes the bundle (Vite's default). |
+| `rewrites` | `/(.*)` → `/index.html` | Any path that is not a real file gets the app's page, so a reload or a shared link to a sub-path does not show a 404. Real files such as `/assets/*.js` are served first, before rewrites apply. |
+
+**Rejected.** Headers, caching rules, redirects and framework presets: nothing in the app needs them yet. Every extra field is one more thing to explain.
+
+**Cost.** The app has no URL routes yet (tabs are React state), so the rewrite only matters once routes are added. It is kept because it is the standard SPA setting and costs nothing.
+
+---
+
 ## Known limitations
 
 - **"A plus" demotes the whole line.** Any line containing "a plus", "nice to have", "preferred" or "bonus" is labeled Preferred as a whole. So "Java required; Kotlin a plus" demotes Java to Preferred as well. Splitting a line into clauses would fix this, at the cost of a more complex parser.
