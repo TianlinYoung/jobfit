@@ -1,7 +1,7 @@
 # Design Decisions
 
 Each entry says what was chosen, what was rejected, and what the choice costs.
-More entries (storage, UI, CI) are added in later stages.
+More entries are added as the project grows.
 
 ---
 
@@ -222,6 +222,43 @@ The same per-field rules (`FieldChecker`) also read the app's own localStorage, 
 **Why.** If the guess were saved, a user whose browser language later changes would be stuck with the old one, even though they never chose it.
 
 **Cost.** None worth noting; reading the browser language on every visit is free.
+
+---
+
+## D15. Lint and CI: typescript-eslint on TypeScript 6, a time-zone matrix, and each relaxed rule explained
+
+**Decision.** `npm run lint` runs ESLint 10 with a flat config (`eslint.config.js`): `@eslint/js` recommended, `typescript-eslint` `recommendedTypeChecked`, and `eslint-plugin-react-hooks` recommended for `src/ui/` and `src/main.tsx`. It must finish with 0 errors and 0 warnings (`--max-warnings 0`). GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci → lint → typecheck → test → build` on every push and pull request, once with `TZ=UTC` and once with `TZ=America/Los_Angeles`.
+
+**TypeScript 6 for linting only.** The project compiles with TypeScript 7, the native (Go) compiler. Its npm package no longer ships the JavaScript compiler API, and typescript-eslint 8.74 needs that API (its peer range is `typescript <6.1`). So:
+- `@typescript/typescript6` (TypeScript 6.0, the same language, with the JavaScript API) is a dev dependency.
+- A module resolve hook at the top of `eslint.config.js` sends `import 'typescript'` to it, **only** for imports made by typescript-eslint's own packages. `tsc`, Vite and Vitest are unaffected.
+- `overrides` in `package.json` relaxes typescript-eslint's peer range to the installed TypeScript, so `npm ci` does not fail on the peer conflict.
+
+typescript-eslint also has an experimental TypeScript 7 backend, but it requires a 7.1 pre-release; we stay on released versions. When typescript-eslint supports TypeScript 7 directly, the hook, the override and `@typescript/typescript6` can all be deleted.
+
+**Rule changes.** No rule is switched off globally. Each change, and why:
+
+| Where | Change | Why |
+|---|---|---|
+| all files | `no-unused-vars`: `argsIgnorePattern: '^_'` | Every `importIssue` message takes the same `(path, limit)` parameters so they can share one type; some messages don't use them. The `_` prefix marks that, as tsc's `noUnusedParameters` already allows. |
+| all files | `unbound-method`: `ignoreStatic: true` | Static methods such as `CalendarDate.isValid` never use `this`, so passing them as callbacks is safe. Instance methods are still checked. |
+| all files | `restrict-template-expressions`: `allowNever: true` | `never` only appears in branches the type checker proved unreachable, such as the last-resort error in `CalendarDate.toUtcMillis`. |
+| `*.js`, `*.mjs` | `disableTypeChecked` | Plain JavaScript (`eslint.config.js`, `scripts/screenshot.mjs`) has no types, so every value is `any` and the type-aware rules would flag every line. The other rules still apply. |
+| `src/storage/**` | `require-await` off | `Repository` is Promise-based so a server-backed version can be added later. The browser and in-memory versions do their work synchronously, so their `async` methods have nothing to await. `async` stays on purpose: a thrown error (storage full) becomes a rejected Promise, which is what callers expect. Removing it would change that. |
+
+**Code changed to pass lint (no behavior change).**
+- `src/core/ScoreCalculator.ts`: `.sort(this.byWeightThenName)` → `.sort((a, b) => this.byWeightThenName(a, b))`. The method does not use `this` today, but if it ever did, the unbound version would break silently.
+- `src/core/FieldChecker.ts`: `list()` returns `value as unknown[]`. `Array.isArray` types the array as `any[]`; this is a type-only change.
+- `src/ui/board/DataTransferPanel.tsx`: `onChange={(event) => void handleFile(event)}`. `handleFile` is async and handles its own errors; `void` marks that the event handler deliberately does not wait for it.
+- `tests/ui/i18n.test.ts`: a message function is cast to `(...args: unknown[]) => unknown` before being called with sample arguments.
+
+**Why a time-zone matrix.** Most date bugs only show up when local time and UTC disagree about the date (D11). UTC is what CI servers use by default; Los Angeles (UTC−8/−7) disagrees with UTC every afternoon and evening. `fail-fast: false` lets both zones finish, so a failure in only one zone is easy to spot. The workflow prints `TZ` and `date` before the tests, so the log shows which zone each run used. The tests that need a specific zone (`tests/timeZone.ts`) set it themselves; the matrix additionally checks that nothing else depends on the machine's zone.
+
+**Node version.** `engines.node` is `^26.13.1`, the version the project is developed with. CI pins `actions/setup-node` to exactly `26.13.1`, the lowest version `engines` allows, and caches npm downloads.
+
+**Rejected.** Downgrading the whole project to TypeScript 6 (gives up the faster compiler the project already uses). Linting without type information (loses the most useful rules, such as `no-floating-promises`). Running the full four-zone set from the stage 3 review in CI (UTC and Los Angeles cover the "local date ≠ UTC date" case; Shanghai and Kiritimati can still be run by hand).
+
+**Cost.** The resolve hook is unusual and must be explained to anyone reading the config. Lint type-checks with TypeScript 6, so in theory it could disagree with `tsc` (7) on an edge case; `npm run typecheck` remains the source of truth for type errors.
 
 ---
 

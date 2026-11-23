@@ -1,0 +1,43 @@
+# CI: on every push and pull request, lint, type-check, test and build the app, once per time zone.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check (TZ=${{ matrix.TZ }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Run both zones even if one fails: a failure in only one zone points at a date bug.
+      fail-fast: false
+      matrix:
+        # UTC is the server default. Los Angeles is UTC-8/-7, where "today" in local time and
+        # "today" in UTC differ every afternoon and evening (see DECISIONS D11).
+        TZ: [UTC, America/Los_Angeles]
+    env:
+      TZ: ${{ matrix.TZ }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          # Same version as "engines" in package.json (the lowest version it allows).
+          node-version: 26.13.1
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+      - name: Show time zone
+        run: |
+          echo "TZ=$TZ"
+          date
+
+      - run: npm test
+      - run: npm run build

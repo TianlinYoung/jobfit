@@ -28,7 +28,7 @@ function keyPaths(object: object, prefix = ''): string[] {
 function leafTexts(object: object): string[] {
   return Object.values(object).flatMap((value): string[] => {
     if (typeof value === 'string') return [value];
-    if (typeof value === 'function') return [String(value('X', 'Y', 1))];
+    if (typeof value === 'function') return [String((value as (...args: unknown[]) => unknown)('X', 'Y', 1))];
     return leafTexts(value as object);
   });
 }

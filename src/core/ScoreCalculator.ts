@@ -19,7 +19,7 @@ export class ScoreCalculator {
   constructor(private readonly dictionary: SkillDictionary) {}
 
   calculate(jdSkills: ExtractedSkill[], resume: ResumeIndex): ScoreResult {
-    const breakdown = jdSkills.map((skill) => this.scoreOne(skill, resume)).sort(this.byWeightThenName);
+    const breakdown = jdSkills.map((skill) => this.scoreOne(skill, resume)).sort((a, b) => this.byWeightThenName(a, b));
     const earnedPoints = this.sum(breakdown.map((s) => s.points));
     const maxPoints = this.sum(breakdown.map((s) => s.weight));
     return { score: this.toPercent(earnedPoints, maxPoints), earnedPoints, maxPoints, breakdown };

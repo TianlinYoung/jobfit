@@ -62,7 +62,8 @@ export class FieldChecker {
       this.report('tooMany', path, maxItems);
       return undefined;
     }
-    return value;
+    // Array.isArray types the array as any[]; unknown[] keeps the items unchecked until each is validated.
+    return value as unknown[];
   }
 
   text(value: unknown, path: string, maxLength: number): string | undefined {

@@ -69,7 +69,13 @@ export function DataTransferPanel({ onExport, onImport }: DataTransferPanelProps
         {/* A styled label opens the hidden file input; this is the usual way to restyle a file picker. */}
         <label className="button-like secondary">
           {t.dataTransfer.import}
-          <input type="file" accept="application/json,.json" className="visually-hidden" onChange={handleFile} />
+          {/* handleFile is async and handles its own errors; `void` says we deliberately don't wait for it. */}
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="visually-hidden"
+            onChange={(event) => void handleFile(event)}
+          />
         </label>
       </div>
       {outcome !== null && <OutcomeMessage outcome={outcome} />}
