@@ -39,6 +39,14 @@ describe('GapAdvisor', () => {
     expect(gap?.bulletId).toBeUndefined();
   });
 
+  it('does not treat "applied" or "approach" as related to mobile apps', () => {
+    expect(advise(['android'], [], ['Applied a new approach to grading'])[0]?.kind).toBe('trulyMissing');
+    expect(advise(['android'], [], ['Shipped two apps used by 500 students'])[0]).toMatchObject({
+      kind: 'canHighlightInBullet',
+      bulletId: 'b1',
+    });
+  });
+
   it('marks a skill as truly missing when the resume has no bullets at all', () => {
     expect(advise(['rust'], [], [])[0]?.kind).toBe('trulyMissing');
   });

@@ -18,7 +18,8 @@ export interface SkillEntry {
    */
   caseSensitiveAliases?: string[];
   /**
-   * Word prefixes that hint a bullet is related to this skill, e.g. Docker → "deploy".
+   * Keywords that hint a bullet is related to this skill, e.g. Docker → "deploy".
+   * 4+ letters match as a word prefix ("deploy" → "deployed"); shorter ones only as a whole word.
    * Only used to suggest where a missing skill *might* belong; never adds points.
    */
   related: string[];

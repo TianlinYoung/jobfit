@@ -1,4 +1,5 @@
 // Labels every line of a job description as required / preferred / context / unspecified.
+import { TextMatcher } from './TextMatcher';
 import type { ClassifiedLine, Importance, SplitResult } from './types';
 
 /** What kind of heading we are currently under while scanning top to bottom. */
@@ -40,6 +41,9 @@ interface PendingLine {
 }
 
 export class JdSectionSplitter {
+  /** The matcher is only used to tell headings from content: a heading never names a skill. */
+  constructor(private readonly matcher: TextMatcher) {}
+
   split(jdText: string): SplitResult {
     const pending: PendingLine[] = [];
     let current: SectionKind = 'none';
@@ -80,6 +84,12 @@ export class JdSectionSplitter {
     const colonIndex = line.indexOf(':');
     const headingPart = colonIndex === -1 ? line : line.slice(0, colonIndex);
     const trailingContent = colonIndex === -1 ? '' : line.slice(colonIndex + 1).trim();
+    // "Experience with React preferred" or "About 2 years of Python" are short and contain
+    // heading words, but they name a skill, so they are content. Treating them as headings
+    // would drop the skill and could relabel every line after them.
+    if (this.matcher.findAll(headingPart).length > 0) {
+      return null;
+    }
     const kind = this.classifyHeadingText(headingPart);
     if (kind === null) {
       return null;

@@ -74,7 +74,7 @@ export class GapAdvisor {
   private findRelatedBullet(skillId: string, bullets: Bullet[]): RelatedHit | null {
     const keywords = this.dictionary.getById(skillId)?.related ?? [];
     for (const bullet of bullets) {
-      const keyword = keywords.find((k) => WordBoundary.containsWordStartingWith(bullet.text, k));
+      const keyword = keywords.find((k) => WordBoundary.containsKeyword(bullet.text, k));
       if (keyword !== undefined) {
         return { bullet, keyword };
       }

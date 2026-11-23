@@ -3,7 +3,8 @@ import { JdParser } from '../../src/core/JdParser';
 import { JdSectionSplitter } from '../../src/core/JdSectionSplitter';
 import { bundledMatcher } from './fixtures';
 
-const parser = new JdParser(new JdSectionSplitter(), bundledMatcher());
+const matcher = bundledMatcher();
+const parser = new JdParser(new JdSectionSplitter(matcher), matcher);
 
 describe('JdParser', () => {
   it('returns no skills for an empty JD', () => {

@@ -5,6 +5,9 @@ const LETTER_OR_DIGIT = /[A-Za-z0-9]/;
 // even if those skills were missing from the dictionary.
 const CONTINUES_AFTER = /[A-Za-z0-9+#]/;
 
+/** Keywords shorter than this are too likely to be the start of an unrelated word. */
+export const MIN_PREFIX_LENGTH = 4;
+
 export class WordBoundary {
   /** True if nothing word-like comes right before `start`. */
   static isStartBoundary(text: string, start: number): boolean {
@@ -27,16 +30,20 @@ export class WordBoundary {
   }
 
   /**
-   * Case-insensitive check that some word in `text` starts with `prefix`.
-   * Prefix (not whole-word) matching lets one keyword like "deploy" cover
-   * "deployed" and "deployment" without needing a stemming library.
+   * Case-insensitive keyword check used for "related" hints.
+   * - Keywords of MIN_PREFIX_LENGTH+ letters match as a word prefix, so "deploy" also covers
+   *   "deployed" and "deployment" without a stemming library.
+   * - Shorter keywords must be a whole word: as a prefix, "app" would match "applied" and "approach".
    */
-  static containsWordStartingWith(text: string, prefix: string): boolean {
+  static containsKeyword(text: string, keyword: string): boolean {
     const haystack = text.toLowerCase();
-    const needle = prefix.toLowerCase();
+    const needle = keyword.toLowerCase();
+    const wholeWordOnly = needle.length < MIN_PREFIX_LENGTH;
     let index = haystack.indexOf(needle);
     while (index !== -1) {
-      if (WordBoundary.isStartBoundary(haystack, index)) {
+      const end = index + needle.length;
+      const endOk = !wholeWordOnly || WordBoundary.isEndBoundary(haystack, end);
+      if (WordBoundary.isStartBoundary(haystack, index) && endOk) {
         return true;
       }
       index = haystack.indexOf(needle, index + 1);

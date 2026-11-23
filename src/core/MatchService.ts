@@ -17,7 +17,7 @@ export class MatchService {
 
   constructor(private readonly dictionary: SkillDictionary) {
     this.matcher = new TextMatcher(dictionary.aliasPatterns());
-    this.parser = new JdParser(new JdSectionSplitter(), this.matcher);
+    this.parser = new JdParser(new JdSectionSplitter(this.matcher), this.matcher);
     this.calculator = new ScoreCalculator(dictionary);
     this.advisor = new GapAdvisor(dictionary);
   }

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { JdSectionSplitter } from '../../src/core/JdSectionSplitter';
 import type { Importance } from '../../src/core/types';
+import { bundledMatcher } from './fixtures';
 
-const splitter = new JdSectionSplitter();
+const splitter = new JdSectionSplitter(bundledMatcher());
 
 /** [text, importance] pairs, which are easier to read in assertions than objects. */
 function classify(jd: string): [string, Importance][] {
@@ -58,7 +59,8 @@ describe('JdSectionSplitter', () => {
   });
 
   it('does not treat a long sentence containing "required" as a heading', () => {
-    const line = 'A strong understanding of distributed systems is required for this role.';
+    // No skill in this sentence, so only the length rule keeps it from being a heading.
+    const line = 'A strong understanding of our customers is required for this role.';
     expect(classify(line)).toEqual([[line, 'unspecified']]);
   });
 
@@ -80,6 +82,39 @@ describe('JdSectionSplitter', () => {
 
   it('handles Windows line endings', () => {
     expect(classify('Requirements\r\n- Java\r\n')).toEqual([['- Java', 'required']]);
+  });
+
+  describe('short lines that name a skill are content, not headings', () => {
+    it('keeps "Experience with React preferred" as a preferred content line', () => {
+      const jd = ['Requirements', 'Experience with React preferred', 'Java'].join('\n');
+      expect(classify(jd)).toEqual([
+        ['Experience with React preferred', 'preferred'],
+        ['Java', 'required'],
+      ]);
+    });
+
+    it('keeps "Bonus points if you know Rust" as a preferred content line', () => {
+      const jd = ['Requirements', 'Java', 'Bonus points if you know Rust', 'SQL'].join('\n');
+      expect(classify(jd)).toEqual([
+        ['Java', 'required'],
+        ['Bonus points if you know Rust', 'preferred'],
+        // Still required: the Rust line did not start a Preferred section.
+        ['SQL', 'required'],
+      ]);
+    });
+
+    it('keeps "About 2 years of Python experience" without turning later lines into context', () => {
+      const jd = ['Requirements', 'About 2 years of Python experience', 'Knowledge of SQL'].join('\n');
+      expect(classify(jd)).toEqual([
+        ['About 2 years of Python experience', 'required'],
+        ['Knowledge of SQL', 'required'],
+      ]);
+    });
+
+    it('still reads a skill-free heading before a colon, keeping the skills after it', () => {
+      expect(splitter.detectHeading('Nice to have: Rust')).toEqual({ kind: 'preferred', trailingContent: 'Rust' });
+      expect(splitter.detectHeading('Rust: nice to have')).toBeNull();
+    });
   });
 
   it('only treats "other" headings as headings when they start with the keyword', () => {

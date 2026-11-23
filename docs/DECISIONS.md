@@ -57,7 +57,9 @@ More entries (storage, UI, CI) are added in later stages.
 
 **Rejected.** Ignoring intro text entirely (simpler, but loses signal). Giving intro text weight 2 (overstates it).
 
-**Cost.** Skills in a "Responsibilities" section are real requirements in some JDs, and weight 1 undervalues them. A single line that says "... is a plus" becomes Preferred even inside a Required section. That is usually right, but "Java required; Kotlin a plus" demotes Java too.
+**How headings are recognized.** A heading is a short, non-bulleted line, or the part of a line before a colon, that contains a heading keyword ("Requirements", "Nice to have", "About ..."). It must also **not name any dictionary skill**. Lines like "Experience with React preferred", "Bonus points if you know Rust" or "About 2 years of Python experience" are short and contain heading words, but they are content. Treating them as headings would drop the skill, and in the last case would turn every following line into context.
+
+**Cost.** Skills in a "Responsibilities" section are real requirements in some JDs, and weight 1 undervalues them. A real heading that names a skill ("Python Developer Requirements") is read as content, so it does not start a new section. See also [Known limitations](#known-limitations).
 
 ---
 
@@ -112,3 +114,26 @@ Skills with no related bullet are labeled "truly missing" and framed as somethin
 **Rejected.** Putting logic in React hooks or components (hard to test, mixes concerns). Plain functions only (fine, but the class style was chosen to match the author's Java background).
 
 **Cost.** There are more files and a little more ceremony (constructors that just store dependencies) than a functional style would need.
+
+---
+
+## D9. Related keywords: prefix match for 4+ letters, whole word for shorter
+
+**Decision.** `related` keywords in `skills.json` are matched by `WordBoundary.containsKeyword`. A keyword with 4 or more letters matches the start of a word, so "deploy" also catches "deployed" and "deployment". A shorter keyword must be a whole word, so "app" matches "app" but not "applied" or "approach". Plural forms of short keywords are listed explicitly (Android/iOS use `["app", "apps", "mobile"]`).
+
+**Why.** Prefix matching saves listing every word form, but very short prefixes start too many unrelated words. Four letters is the shortest length where false hits were rare in the dictionary's keywords.
+
+**Rejected.** A stemming library (extra dependency, harder to explain). Whole-word matching only (would need every inflection listed by hand).
+
+**Cost.** The cut-off is a rule of thumb. A 4+ letter keyword can still hit an unrelated word ("test" → "testimonial"). These hints only choose which bullet to suggest, never the score, so a wrong hint costs little.
+
+---
+
+## Known limitations
+
+- **"A plus" demotes the whole line.** Any line containing "a plus", "nice to have", "preferred" or "bonus" is labeled Preferred as a whole. So "Java required; Kotlin a plus" demotes Java to Preferred as well. Splitting a line into clauses would fix this, at the cost of a more complex parser.
+- **Headings that name a skill are read as content** (see D4). For example, "Python Developer Requirements" does not start a Required section.
+- **No negation or experience levels.** "No Java needed" still counts Java. "3+ years of Python" counts the same as "some Python".
+- **Dictionary only.** Skills not in `skills.json` are invisible in the JD. In the resume they are listed as unrecognized (D7).
+- **Ambiguity rules are a known-pattern list** (D2). A false positive that no rule covers, such as "Let's Go!" mid-sentence, still matches.
+- **English JDs only.**

@@ -47,6 +47,32 @@ describe('MatchService', () => {
     expect(report.unrecognizedResumeSkills).toEqual(['COBOL']);
   });
 
+  it('handles a plain-text JD with no list markers', () => {
+    const jd = [
+      'Software Engineering Intern',
+      'About us',
+      'We build payment tools for small businesses.',
+      'Minimum Qualifications',
+      'Experience with Java or Python',
+      'About 2 years of SQL experience',
+      'Experience with React preferred',
+      'Bonus points if you know Rust',
+      'Benefits',
+      'Free lunch and a gym',
+    ].join('\n');
+    const report = service.analyze(jd, makeResume(['Java', 'React']));
+
+    expect(report.breakdown.map((s) => [s.skillId, s.importance, s.status])).toEqual([
+      ['java', 'required', 'listed'],
+      ['python', 'required', 'missing'],
+      ['sql', 'required', 'missing'],
+      ['react', 'preferred', 'listed'],
+      ['rust', 'preferred', 'missing'],
+    ]);
+    // earned = 3 + 1 = 4; max = 3×3 + 2×1 = 11; 100 × 4 / 11 = 36.4
+    expect(report.score).toBe(36);
+  });
+
   it('returns one gap per skill not in the skills list', () => {
     const resume = makeResume(['Java'], ['Deployed a Flask app']);
     const report = service.analyze(SAMPLE_JD, resume);

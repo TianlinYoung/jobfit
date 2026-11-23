@@ -42,6 +42,8 @@ describe('TextMatcher', () => {
     expect(ids('Able to react quickly to change')).toEqual([]);
     expect(ids('Design REST endpoints')).toEqual(['rest']);
     expect(ids('Work with the rest of the team')).toEqual([]);
+    expect(ids('Candidates who excel at communication')).toEqual([]);
+    expect(ids('Advanced Excel and microsoft excel')).toEqual(['excel']);
   });
 
   it('matches case-insensitive aliases in any casing', () => {
