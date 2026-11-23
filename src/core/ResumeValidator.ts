@@ -3,48 +3,84 @@
 // TypeScript types disappear at runtime, so JSON.parse(...) gives us `unknown` data that could be
 // anything: an old format, a hand-edited file, or garbage. We check it field by field instead of
 // trusting a type assertion.
+import { allValid, FieldChecker } from './FieldChecker';
+import { LIMITS } from './limits';
 import type { Bullet, Experience, Resume } from './types';
 
 export class ResumeValidator {
-  /** Returns the resume if the data is valid, otherwise null. Extra fields are dropped. */
+  /** For data the app saved itself: shape only. Returns null if anything is wrong. Extra fields are dropped. */
   static parse(raw: unknown): Resume | null {
-    if (!isObject(raw) || !isStringArray(raw.skills) || !Array.isArray(raw.experiences)) {
-      return null;
+    const checker = new FieldChecker(false);
+    const resume = ResumeValidator.check(raw, checker, 'resume');
+    return resume === undefined || checker.hasIssues() ? null : resume;
+  }
+
+  /** Records every problem in `checker`; returns the resume only if this part is valid. */
+  static check(raw: unknown, checker: FieldChecker, path: string): Resume | undefined {
+    const object = checker.object(raw, path);
+    if (object === undefined) {
+      return undefined;
     }
-    const experiences: Experience[] = [];
-    for (const item of raw.experiences) {
-      const experience = parseExperience(item);
-      if (experience === null) {
-        return null;
-      }
-      experiences.push(experience);
+    const skills = ResumeValidator.checkSkills(object.skills, checker, `${path}.skills`);
+    const experiences = ResumeValidator.checkList(object.experiences, checker, `${path}.experiences`);
+    if (skills === undefined || experiences === undefined) {
+      return undefined;
     }
-    return { skills: raw.skills, experiences };
+    return { skills, experiences };
   }
-}
 
-function parseExperience(raw: unknown): Experience | null {
-  if (!isObject(raw)) {
-    return null;
+  private static checkSkills(raw: unknown, checker: FieldChecker, path: string): string[] | undefined {
+    const items = checker.list(raw, path, LIMITS.skills);
+    if (items === undefined) {
+      return undefined;
+    }
+    const skills = items.map((item, i) => checker.text(item, `${path}[${i}]`, LIMITS.skill));
+    return allValid(skills) ? skills : undefined;
   }
-  const { id, title, organization, bullets } = raw;
-  if (typeof id !== 'string' || typeof title !== 'string' || typeof organization !== 'string') {
-    return null;
+
+  private static checkList(raw: unknown, checker: FieldChecker, path: string): Experience[] | undefined {
+    const items = checker.list(raw, path, LIMITS.experiences);
+    if (items === undefined) {
+      return undefined;
+    }
+    const experiences = items.map((item, i) => ResumeValidator.checkExperience(item, checker, `${path}[${i}]`));
+    return allValid(experiences) ? experiences : undefined;
   }
-  if (!Array.isArray(bullets) || !bullets.every(isBullet)) {
-    return null;
+
+  private static checkExperience(raw: unknown, checker: FieldChecker, path: string): Experience | undefined {
+    const object = checker.object(raw, path);
+    if (object === undefined) {
+      return undefined;
+    }
+    const id = checker.requiredText(object.id, `${path}.id`, LIMITS.id);
+    const title = checker.text(object.title, `${path}.title`, LIMITS.experienceTitle);
+    const organization = checker.text(object.organization, `${path}.organization`, LIMITS.organization);
+    const bullets = ResumeValidator.checkBullets(object.bullets, checker, `${path}.bullets`);
+    if (id === undefined || title === undefined || organization === undefined || bullets === undefined) {
+      return undefined;
+    }
+    return { id, title, organization, bullets };
   }
-  return { id, title, organization, bullets: bullets.map((b) => ({ id: b.id, text: b.text })) };
-}
 
-function isBullet(raw: unknown): raw is Bullet {
-  return isObject(raw) && typeof raw.id === 'string' && typeof raw.text === 'string';
-}
+  private static checkBullets(raw: unknown, checker: FieldChecker, path: string): Bullet[] | undefined {
+    const items = checker.list(raw, path, LIMITS.bulletsPerExperience);
+    if (items === undefined) {
+      return undefined;
+    }
+    const bullets = items.map((item, i) => ResumeValidator.checkBullet(item, checker, `${path}[${i}]`));
+    return allValid(bullets) ? bullets : undefined;
+  }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+  private static checkBullet(raw: unknown, checker: FieldChecker, path: string): Bullet | undefined {
+    const object = checker.object(raw, path);
+    if (object === undefined) {
+      return undefined;
+    }
+    const id = checker.requiredText(object.id, `${path}.id`, LIMITS.id);
+    const text = checker.text(object.text, `${path}.text`, LIMITS.bulletText);
+    if (id === undefined || text === undefined) {
+      return undefined;
+    }
+    return { id, text };
+  }
 }

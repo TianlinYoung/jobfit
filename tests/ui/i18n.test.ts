@@ -9,6 +9,7 @@ import {
   LANGUAGE_KEY,
   detectInitialLanguage,
   readSavedLanguage,
+  resolveInitialLanguage,
   saveLanguage,
   type Language,
   type PreferenceStore,
@@ -162,6 +163,25 @@ describe('language persistence', () => {
     saveLanguage(store, 'zh');
     expect(store.data.get(LANGUAGE_KEY)).toBe('zh');
     expect(readSavedLanguage(store)).toBe('zh');
+  });
+
+  it('does not save an auto-detected language (only an explicit choice is saved)', () => {
+    const store = new MapStore();
+    let writes = 0;
+    const countingStore: PreferenceStore = {
+      getItem: (key) => store.getItem(key),
+      setItem: (key, value) => {
+        writes++;
+        store.setItem(key, value);
+      },
+    };
+    expect(resolveInitialLanguage(countingStore, 'zh-CN')).toBe('zh');
+    expect(writes).toBe(0);
+    expect(store.data.has(LANGUAGE_KEY)).toBe(false);
+
+    saveLanguage(countingStore, 'en'); // what the picker does on an explicit choice
+    expect(writes).toBe(1);
+    expect(resolveInitialLanguage(countingStore, 'zh-CN')).toBe('en');
   });
 
   it('treats unavailable storage as "nothing saved" instead of crashing', () => {

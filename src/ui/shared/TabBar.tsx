@@ -22,6 +22,7 @@ export function TabBar<T extends string>({ tabs, activeId, onSelect, ariaLabel }
         // which item is which between renders (like a primary key).
         <button
           key={tab.id}
+          id={`tab-${tab.id}`}
           type="button"
           className={tab.id === activeId ? 'tab active' : 'tab'}
           aria-current={tab.id === activeId ? 'page' : undefined}

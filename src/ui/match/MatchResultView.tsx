@@ -3,18 +3,23 @@ import type { MatchReport } from '../../core/types';
 import { useT } from '../i18n/LanguageContext';
 import { EmptyState } from '../shared/EmptyState';
 import { GapList } from './GapList';
+import { SaveApplicationForm } from './SaveApplicationForm';
 import { ScoreSummary } from './ScoreSummary';
 import { SkillBreakdownTable } from './SkillBreakdownTable';
 import { UnrecognizedSkills } from './UnrecognizedSkills';
 
-// React: props are the inputs. The callback lets the empty state offer a button that App handles.
+// React: props are the inputs. The callbacks let buttons here trigger actions that App handles.
 interface MatchResultViewProps {
   report: MatchReport;
   isStale: boolean;
   onLoadSample: () => void;
+  /** Saves the analyzed JD and this score as a new application. */
+  onSaveApplication: (company: string, role: string, score: number) => void;
+  onOpenBoard: () => void;
 }
 
-export function MatchResultView({ report, isStale, onLoadSample }: MatchResultViewProps) {
+export function MatchResultView(props: MatchResultViewProps) {
+  const { report, isStale, onLoadSample, onSaveApplication, onOpenBoard } = props;
   const t = useT();
   if (report.score === null) {
     return (
@@ -30,6 +35,8 @@ export function MatchResultView({ report, isStale, onLoadSample }: MatchResultVi
     );
   }
 
+  // Narrowed to number by the early return above; captured so the callback below keeps that type.
+  const score = report.score;
   return (
     <div className="results">
       {isStale && (
@@ -38,6 +45,10 @@ export function MatchResultView({ report, isStale, onLoadSample }: MatchResultVi
         </p>
       )}
       <ScoreSummary report={report} score={report.score} />
+      <SaveApplicationForm
+        onSave={(company, role) => onSaveApplication(company, role, score)}
+        onOpenBoard={onOpenBoard}
+      />
       <UnrecognizedSkills skills={report.unrecognizedResumeSkills} />
       <SkillBreakdownTable breakdown={report.breakdown} />
       <GapList gaps={report.gaps} />

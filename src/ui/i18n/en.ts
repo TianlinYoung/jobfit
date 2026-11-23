@@ -15,6 +15,7 @@ export const en = {
   tabs: {
     match: 'Match a job',
     resume: 'My resume',
+    board: 'Applications',
   },
   match: {
     heroTitle: 'How well does your resume match this job?',
@@ -109,6 +110,95 @@ export const en = {
     bullets: 'Bullets (one per line)',
     bulletsPlaceholder: 'Built a REST API in Java for ...\nCut query time by 80% by ...',
     remove: 'Remove this experience',
+  },
+  applicationStatus: {
+    Saved: 'Saved',
+    Applied: 'Applied',
+    OA: 'Online assessment',
+    Interview: 'Interview',
+    Offer: 'Offer',
+    Rejected: 'Rejected',
+  },
+  board: {
+    title: 'Applications',
+    intro: 'Track each application and when to follow up. Data stays in this browser.',
+    add: '+ Add application',
+    emptyTitle: 'No applications yet',
+    emptyMessage: 'Add one by hand, or analyze a JD on the Match tab and save the result.',
+    loadSample: 'Load sample applications',
+    columnEmpty: 'None',
+    statusLabel: 'Status',
+    edit: 'Edit',
+    delete: 'Delete',
+    confirmDelete: (role: string, company: string) => `Delete "${role}" at ${company}? This cannot be undone.`,
+    appliedOn: (date: string) => `Applied ${date}`,
+    followUpOn: (date: string) => `Follow up ${date}`,
+    matchScore: (score: number) => `Match ${score}/100`,
+    saveFailed: 'Could not save your applications (browser storage may be full or disabled).',
+  },
+  reminder: {
+    bannerTitle: (count: number) =>
+      count === 1 ? '1 application needs a follow-up' : `${count} applications need a follow-up`,
+    overdue: (days: number) => `Follow-up overdue by ${days} ${days === 1 ? 'day' : 'days'}`,
+    dueToday: 'Follow up today',
+    upcoming: (days: number) => `Follow up in ${days} ${days === 1 ? 'day' : 'days'}`,
+  },
+  applicationForm: {
+    addTitle: 'New application',
+    editTitle: 'Edit application',
+    company: 'Company',
+    role: 'Role',
+    status: 'Status',
+    appliedDate: 'Applied on',
+    followUpDate: 'Follow up on',
+    followUpHint: 'Leave empty for no reminder. Filled in automatically (7 days after applying) when the status moves to Applied, Online assessment or Interview.',
+    notes: 'Notes',
+    jdText: 'Job description',
+    lastScore: (score: number) => `Last match score: ${score}/100`,
+    save: 'Save',
+    cancel: 'Cancel',
+    required: 'Company and role are required.',
+  },
+  saveApplication: {
+    button: 'Save as application',
+    title: 'Save this job to your applications',
+    save: 'Save to Applications',
+    saved: (role: string, company: string) => `Saved "${role}" at ${company} to Applications.`,
+    openBoard: 'Open Applications',
+  },
+  dataTransfer: {
+    title: 'Backup',
+    hint: 'Export everything (resume and applications) to a JSON file, or import one. Importing replaces all current data.',
+    export: 'Export JSON',
+    import: 'Import JSON…',
+    confirmImport: (applications: number, hasResume: boolean) =>
+      `Replace ALL current data with this file (${applications} ${applications === 1 ? 'application' : 'applications'}${
+        hasResume ? ' and a resume' : ', no resume'
+      })? This cannot be undone.`,
+    imported: (applications: number) =>
+      `Imported ${applications} ${applications === 1 ? 'application' : 'applications'}.`,
+    rejected: 'Nothing was imported. The file has these problems:',
+    moreIssues: (count: number) => `…and ${count} more.`,
+    readFailed: 'Could not read that file.',
+    saveFailed: 'The file is valid, but saving it failed (browser storage may be full).',
+  },
+  // One message per validation problem. `path` points at the field, e.g. "applications[2].status".
+  importIssue: {
+    invalidJson: (_path: string, _limit: number) => 'The file is not valid JSON.',
+    fileTooLarge: (_path: string, limit: number) => `The file is larger than ${Math.round(limit / 1_000_000)} MB.`,
+    unsupportedVersion: (path: string, _limit: number) => `${path}: unsupported file version (expected 1).`,
+    notAnObject: (path: string, _limit: number) => `${path}: expected an object.`,
+    notAList: (path: string, _limit: number) => `${path}: expected a list.`,
+    notText: (path: string, _limit: number) => `${path}: expected text.`,
+    emptyRequired: (path: string, _limit: number) => `${path}: must not be empty.`,
+    invalidStatus: (path: string, _limit: number) =>
+      `${path}: not a valid status (Saved, Applied, OA, Interview, Offer, Rejected).`,
+    invalidDate: (path: string, _limit: number) => `${path}: expected a date like 2026-11-23, or null.`,
+    invalidTimestamp: (path: string, _limit: number) => `${path}: expected a date-time like 2026-11-23T18:00:00.000Z.`,
+    invalidScore: (path: string, _limit: number) => `${path}: expected a whole number from 0 to 100, or null.`,
+    tooLong: (path: string, limit: number) => `${path}: longer than ${limit} characters.`,
+    tooMany: (path: string, limit: number) => `${path}: more than ${limit} items.`,
+    duplicateId: (path: string, _limit: number) => `${path}: this id is used more than once.`,
   },
 };
 

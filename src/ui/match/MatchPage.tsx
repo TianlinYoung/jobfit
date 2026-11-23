@@ -18,10 +18,14 @@ interface MatchPageProps {
   onAnalyze: () => void;
   onLoadSample: () => void;
   onGoToResume: () => void;
+  /** Creates an application from the analyzed JD and its score. */
+  onSaveApplication: (fields: { company: string; role: string; jdText: string; lastScore: number }) => void;
+  onOpenBoard: () => void;
 }
 
 export function MatchPage(props: MatchPageProps) {
   const { matchService, resume, jdText, analyzedJd, onJdChange, onAnalyze, onLoadSample, onGoToResume } = props;
+  const { onSaveApplication, onOpenBoard } = props;
   // useT() returns the dictionary for the current language (see i18n/LanguageContext.tsx).
   const t = useT();
   const jdIsBlank = jdText.trim() === '';
@@ -33,7 +37,7 @@ export function MatchPage(props: MatchPageProps) {
           <h2>{t.match.heroTitle}</h2>
           <p className="hint">{t.match.heroIntro}</p>
         </div>
-        <button type="button" className="secondary" onClick={onLoadSample}>
+        <button type="button" id="try-sample" className="secondary" onClick={onLoadSample}>
           {t.match.trySample}
         </button>
       </header>
@@ -68,6 +72,8 @@ export function MatchPage(props: MatchPageProps) {
         analyzedJd={analyzedJd}
         onLoadSample={onLoadSample}
         onGoToResume={onGoToResume}
+        onSaveApplication={onSaveApplication}
+        onOpenBoard={onOpenBoard}
       />
     </section>
   );
@@ -75,11 +81,12 @@ export function MatchPage(props: MatchPageProps) {
 
 type ResultsProps = Pick<
   MatchPageProps,
-  'matchService' | 'resume' | 'jdText' | 'analyzedJd' | 'onLoadSample' | 'onGoToResume'
+  'matchService' | 'resume' | 'jdText' | 'analyzedJd' | 'onLoadSample' | 'onGoToResume' | 'onSaveApplication' | 'onOpenBoard'
 >;
 
 /** Everything below the JD box. Split out so each "nothing to show" case reads as one early return. */
-function Results({ matchService, resume, jdText, analyzedJd, onLoadSample, onGoToResume }: ResultsProps) {
+function Results(props: ResultsProps) {
+  const { matchService, resume, jdText, analyzedJd, onLoadSample, onGoToResume, onSaveApplication, onOpenBoard } = props;
   const t = useT();
   if (analyzedJd === null) {
     return null;
@@ -106,5 +113,16 @@ function Results({ matchService, resume, jdText, analyzedJd, onLoadSample, onGoT
   // Computed during render instead of stored in state: the report always matches the current
   // resume, and analysis is fast (milliseconds), so there is nothing to cache.
   const report = matchService.analyze(analyzedJd, resume);
-  return <MatchResultView report={report} isStale={jdText !== analyzedJd} onLoadSample={onLoadSample} />;
+  return (
+    <MatchResultView
+      report={report}
+      isStale={jdText !== analyzedJd}
+      onLoadSample={onLoadSample}
+      onSaveApplication={(company, role, score) =>
+        // Save the JD that produced this score, even if the text box was edited since.
+        onSaveApplication({ company, role, jdText: analyzedJd, lastScore: score })
+      }
+      onOpenBoard={onOpenBoard}
+    />
+  );
 }

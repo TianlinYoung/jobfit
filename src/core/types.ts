@@ -162,3 +162,35 @@ export interface MatchReport {
   unrecognizedResumeSkills: string[];
   hasRequirementHeaders: boolean;
 }
+
+// ---------- Application tracker ----------
+
+/** All statuses in board order. A runtime list (not just a type) so validation can check against it. */
+export const APPLICATION_STATUSES = ['Saved', 'Applied', 'OA', 'Interview', 'Offer', 'Rejected'] as const;
+
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+export interface Application {
+  id: string;
+  company: string;
+  role: string;
+  status: ApplicationStatus;
+  /** Local calendar date "YYYY-MM-DD", or null if not applied yet. */
+  appliedDate: string | null;
+  /** Local calendar date "YYYY-MM-DD"; null means no reminder. */
+  followUpDate: string | null;
+  notes: string;
+  /** The JD this application was saved from; may be empty. */
+  jdText: string;
+  /** Match score when saved from the Match page; null if never scored. */
+  lastScore: number | null;
+  /** ISO timestamps (UTC instants). Only used for ordering, never shown as a "day". */
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Everything the app stores. Also the payload of an export file. */
+export interface AppData {
+  resume: Resume | null;
+  applications: Application[];
+}

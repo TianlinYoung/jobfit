@@ -148,3 +148,70 @@ npm test         # 跑全部单元测试
 
 ### 2.7.5 以后写新组件
 阶段 3、4 的所有新组件都用 `const t = useT();` 取文案。新增文案时先加到 `en.ts`，编译器会提示 `zh.ts` 缺了什么。
+
+另外，语言只在用户主动切换时写入 localStorage（D14）。`resolveInitialLanguage` 只读不写，`saveLanguage` 只在 `chooseLanguage` 里调用。
+
+---
+
+## 阶段 3：投递看板、跟进提醒、导入导出
+
+### 3.1 日期："今天"是哪一天
+- `src/core/CalendarDate.ts`
+- 测试：`tests/core/CalendarDate.test.ts`、`tests/timeZone.ts`（用 `vi.stubEnv('TZ', …)` 切换时区的小工具）
+
+**读懂的标志：**
+- 能解释为什么 `new Date().toISOString().slice(0, 10)` 在西雅图下午 4 点以后会得到"明天"，而 `CalendarDate.today` 不会。
+- 能说出 `now` 为什么由外部传入：App 里是 `clock`，测试里是固定的时刻。
+- 能解释为什么 `addDays` 用 UTC 做加减，就不会受夏令时影响。
+
+### 3.2 投递记录的规则
+- `src/core/types.ts`（`Application`、`APPLICATION_STATUSES`、`AppData`）
+- `src/core/ApplicationRules.ts`，然后 `src/core/ReminderPolicy.ts`
+- 测试：`ApplicationRules.test.ts`、`ReminderPolicy.test.ts`、`tests/core/applicationFixtures.ts`
+
+**读懂的标志：**
+- 能说出哪三种状态会提醒，以及"逾期 / 今天 / 3 天内"分别显示在哪里（对照 DECISIONS D12 的两张表）。
+- 能解释"状态从 Saved 改成 Applied 时自动填日期，但绝不覆盖用户已填的日期"是哪几行代码实现的。
+- 能说出 `APPLICATION_STATUSES` 为什么是一个运行时数组，而不只是一个 type。
+
+### 3.3 导入：不可信输入的校验
+- `src/core/limits.ts`，然后 `src/core/FieldChecker.ts`
+- `src/core/ApplicationValidator.ts`、`src/core/ResumeValidator.ts`（改成了基于 `FieldChecker`）
+- `src/core/ExportCodec.ts`
+- 测试：`ExportCodec.test.ts`、`ApplicationValidator.test.ts`
+
+**读懂的标志：**
+- 能解释 `FieldChecker` 为什么用返回 `undefined` 表示"无效"，以及为什么要先检查完所有字段、再决定结果，而不是遇到第一个错误就返回。
+- 能说出 `enforceLimits` 为 true（导入文件）和 false（自己存的 localStorage）时行为的两点区别。
+- 能说出 `allValid` 这个 type guard 解决了什么问题：没有它，代码里会多出几处 `as` 强转。
+- 能解释为什么一个文件里只要有一条投递不合法，就整体拒绝。
+
+### 3.4 存储层扩展
+- `src/storage/Repository.ts`、`LocalStorageRepository.ts`、`InMemoryRepository.ts`
+- 测试：`tests/storage/LocalStorageRepository.test.ts`。注意 `describe.each`：两种实现跑的是同一组"契约测试"。
+
+**读懂的标志：**
+- 能解释 `replaceAll` 为什么先写 applications、后写 resume。
+- 能说出 App 里的 `loadSampleApplications` 为什么要在循环里 `await`：如果同时发出 7 个 `saveApplication`，会丢数据，原因是什么？
+
+### 3.5 看板界面
+- `src/ui/App.tsx`（新增 `applications` state、`clock`、几个处理函数）
+- `src/ui/board/BoardPage.tsx`，然后 `StatusColumn.tsx`、`ApplicationCard.tsx`、`ReminderBanner.tsx`、`ApplicationForm.tsx`
+- `src/ui/format.ts`（`formatDate`）、`src/ui/sampleApplications.ts`
+- 测试：`tests/ui/board.test.ts`
+
+**读懂的标志：**
+- 能解释 `persistApplication` 里 `setApplications((current) => …)` 这种"传函数给 setter"的写法，和直接传新值有什么不同。
+- 能解释 BoardPage 里 `<ApplicationForm key={…}>` 的作用：从编辑 A 切到编辑 B 时，为什么要让 React 重建这个表单？
+- 能说出 `formMode` 这个 state 为什么放在 BoardPage，而不是放在 App。
+
+### 3.6 导入导出界面和"保存为投递"
+- `src/ui/board/DataTransferPanel.tsx`、`src/ui/fileDownload.ts`
+- `src/ui/match/SaveApplicationForm.tsx`，以及 `MatchPage.tsx`、`MatchResultView.tsx` 里新增的 `onSaveApplication`
+
+**读懂的标志：**
+- 能按顺序说出导入的流程：选文件 → 检查大小 → 读取 → `decode` → 列出问题，或者弹窗确认 → `replaceAll` → 显示结果。
+- 能解释为什么保存为投递时用的是 `analyzedJd`，而不是输入框里当前的 `jdText`。
+
+### 3.7 截图脚本
+- `scripts/screenshot.mjs`：不依赖任何 npm 包，用 Node 自带的 `fetch` 和 `WebSocket`，通过 Chrome DevTools Protocol 控制本机的无头 Edge 或 Chrome。先 `npm run dev`，再执行 `npm run screenshot -- --view board --lang zh --out board-zh.png`。

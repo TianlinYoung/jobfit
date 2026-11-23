@@ -1,7 +1,7 @@
 // Makes the current language and its dictionary available to every component, without passing props down.
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Messages } from './en';
-import { DICTIONARIES, detectInitialLanguage, readSavedLanguage, saveLanguage, type Language, type PreferenceStore } from './language';
+import { DICTIONARIES, resolveInitialLanguage, saveLanguage, type Language, type PreferenceStore } from './language';
 
 interface LanguageContextValue {
   language: Language;
@@ -25,19 +25,23 @@ interface LanguageProviderProps {
 export function LanguageProvider({ store, browserLanguage, children }: LanguageProviderProps) {
   // React: useState keeps the current language between renders. Passing a function means
   // the initial value is computed once, on the first render only.
-  const [language, setLanguage] = useState<Language>(() =>
-    detectInitialLanguage(readSavedLanguage(store), browserLanguage),
-  );
+  const [language, setLanguageState] = useState<Language>(() => resolveInitialLanguage(store, browserLanguage));
 
-  // React: useEffect runs after rendering, for side effects outside React. Here: remember the
-  // choice and set <html lang>, which screen readers and browser font selection use.
-  // The [language, store] list means "run again whenever the language changes".
+  // React: useEffect runs after rendering, for side effects outside React. Here it sets <html lang>,
+  // which screen readers and browser font selection use. The [language] list means
+  // "run again whenever the language changes".
   useEffect(() => {
-    saveLanguage(store, language);
     document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
-  }, [language, store]);
+  }, [language]);
 
-  const value: LanguageContextValue = { language, setLanguage, t: DICTIONARIES[language] };
+  // Only an explicit choice is saved. An auto-detected language is not, so a visitor whose
+  // browser language changes later still gets the new default.
+  function chooseLanguage(next: Language) {
+    setLanguageState(next);
+    saveLanguage(store, next);
+  }
+
+  const value: LanguageContextValue = { language, setLanguage: chooseLanguage, t: DICTIONARIES[language] };
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 

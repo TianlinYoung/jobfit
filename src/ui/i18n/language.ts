@@ -32,6 +32,11 @@ export function detectInitialLanguage(saved: string | null, browserLanguage: str
   return browserLanguage.toLowerCase().startsWith('zh') ? 'zh' : 'en';
 }
 
+/** The language to start with. Only reads storage; never writes (see saveLanguage). */
+export function resolveInitialLanguage(store: PreferenceStore, browserLanguage: string): Language {
+  return detectInitialLanguage(readSavedLanguage(store), browserLanguage);
+}
+
 // Storage access can throw (privacy mode, disabled storage). A language preference is not worth
 // crashing over, so failures fall back to "not saved".
 export function readSavedLanguage(store: PreferenceStore): string | null {

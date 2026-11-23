@@ -151,6 +151,80 @@ Alongside this, `src/core/` returns **data, not sentences**:
 
 ---
 
+## D11. "Today" is the user's local calendar date, built by hand and passed in
+
+**Decision.** Dates without a time (applied on, follow up on) are stored as `"YYYY-MM-DD"` strings. `CalendarDate.today(now)` builds today's string from the **local** year, month and day (`getFullYear` / `getMonth` / `getDate`). It never uses `toISOString()`. `now` is always passed in: App gets it from an injectable `clock`, and core functions take it as a parameter. Date arithmetic (`addDays`, `daysBetween`) treats a date as midnight UTC, so daylight saving never shifts a result.
+
+**Why.** `toISOString()` is UTC. At 4:30 pm in Seattle (UTC−8) it already returns tomorrow's date, so a follow-up due today would show as "due yesterday". The bug only appears in the evening, which makes it easy to miss. Passing `now` in lets tests run at any instant and in any zone. `CalendarDate.test.ts` sets the zone to Seattle at 00:30 UTC, and to Shanghai at 23:00 UTC, and checks both.
+
+**Rejected.** Storing full `Date`s or ISO timestamps for calendar dates (wrong model: "Nov 23" is not an instant). A date library such as date-fns or Luxon (an extra dependency for about 40 lines of code).
+
+**Cost.** Timestamps (`createdAt`, `updatedAt`) and calendar dates are two different kinds of value, and code must not mix them up. Dates are also shown with `timeZone: 'UTC'` formatting, for the same reason.
+
+---
+
+## D12. Follow-up reminder rules
+
+**Decision.** Defined in `ReminderPolicy`:
+
+| Status | Reminders? | Why |
+|---|---|---|
+| Applied, OA, Interview | Yes | You are waiting on the company; following up is useful |
+| Saved | No | Not applied yet; nothing to follow up on |
+| Offer, Rejected | No | Final; a reminder would be noise. The follow-up date is kept, just ignored |
+
+For a status that gets reminders and has a follow-up date, compared with *today* (local, D11):
+
+| Follow-up date | Shown as | Where |
+|---|---|---|
+| before today | **Overdue by N days** (red) | card badge + banner |
+| today | **Follow up today** (amber) | card badge + banner |
+| 1–3 days ahead | **Follow up in N days** (blue) | card badge only |
+| later, or none | nothing | — |
+
+The banner lists the most overdue first. Within a column, cards are sorted by soonest follow-up, so overdue cards rise to the top.
+
+**Default dates.** When an application *enters* Applied, OA or Interview (created that way, or its status changes), an empty applied date becomes today, and an empty follow-up date becomes applied + 7 days. Dates the user set are never overwritten. Clearing the follow-up date without changing the status turns reminders off for that application.
+
+**Why.** Reminders should only appear when there is something to do, or the user learns to ignore them. Seven days is a common rule of thumb for following up after applying. The 3-day "upcoming" window gives notice without crowding the banner.
+
+**Rejected.** Browser notifications (need permission and a running page). Reminders for Saved jobs, such as application deadlines (a different feature, with a different date).
+
+**Cost.** Reminders are only visible while the app is open. There is no push or email.
+
+---
+
+## D13. Imports are untrusted: validate every field, all-or-nothing
+
+**Decision.** `ExportCodec.decode` checks the whole file before anything is saved:
+- size (5 MB), valid JSON, and `schemaVersion === 1`;
+- every field's type;
+- status from the fixed list, real calendar dates (`2026-02-30` is rejected), ISO timestamps, and scores as whole numbers 0–100;
+- text length limits and list size limits (`limits.ts`);
+- unique application ids.
+
+Every problem is collected with its path (`applications[2].status`) and shown to the user in their language. If there is **any** problem, nothing is imported. If the file is valid, the user must confirm the overwrite (showing what the file contains) before `replaceAll` runs.
+
+The same per-field rules (`FieldChecker`) also read the app's own localStorage, with two differences: size limits are off, and a broken stored record is skipped rather than failing the whole list. Form inputs use the same limits as `maxLength`, so the app never creates data its own importer would reject.
+
+**Why.** A JSON file can come from anywhere: an old version, a hand edit, another tool. A partial import leaves the user unsure what they have. Specific messages let them fix the file instead of guessing. `replaceAll` writes the large applications value first, so a full-storage failure happens before anything has changed.
+
+**Rejected.** A schema library such as zod (another dependency and DSL to learn; the checker is about 120 readable lines). Merging imported data with existing data (needs conflict rules; v1 keeps replace-only, with a confirm).
+
+**Cost.** Validation code must be updated whenever a field is added. An older export file will need a migration step once `schemaVersion` changes.
+
+---
+
+## D14. Only an explicit language choice is saved
+
+**Decision.** On first visit the language comes from `navigator.language` (`zh*` → Chinese, otherwise English), and that guess is **not** written to localStorage. Only picking a language in the header saves it.
+
+**Why.** If the guess were saved, a user whose browser language later changes would be stuck with the old one, even though they never chose it.
+
+**Cost.** None worth noting; reading the browser language on every visit is free.
+
+---
+
 ## Known limitations
 
 - **"A plus" demotes the whole line.** Any line containing "a plus", "nice to have", "preferred" or "bonus" is labeled Preferred as a whole. So "Java required; Kotlin a plus" demotes Java to Preferred as well. Splitting a line into clauses would fix this, at the cost of a more complex parser.
@@ -158,4 +232,6 @@ Alongside this, `src/core/` returns **data, not sentences**:
 - **No negation or experience levels.** "No Java needed" still counts Java. "3+ years of Python" counts the same as "some Python".
 - **Dictionary only.** Skills not in `skills.json` are invisible in the JD. In the resume they are listed as unrecognized (D7).
 - **Ambiguity rules are a known-pattern list** (D2). A false positive that no rule covers, such as "Let's Go!" mid-sentence, still matches.
+- **Reminders only show while the app is open** (D12). There are no notifications or emails.
+- **Import replaces everything** (D13); there is no merge.
 - **English JDs only.** The interface is available in English and Chinese (D10), but the dictionary, headings and ambiguity rules only understand English job descriptions and resume text.
